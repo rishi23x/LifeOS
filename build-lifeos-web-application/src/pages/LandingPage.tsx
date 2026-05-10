@@ -420,7 +420,6 @@ function Pricing() {
               </div>
 
               <button
-                ={() => navigate('/dashboard')}
                 className={`w-full rounded-full px-8 py-3.5 text-sm font-medium transition-all hover:scale-102 cursor-pointer ${
                   plan.featured
                     ? 'bg-white text-black font-semibold hover:bg-white/90'
