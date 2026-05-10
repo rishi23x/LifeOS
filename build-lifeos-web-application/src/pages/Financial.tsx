@@ -145,20 +145,20 @@ Total spend: $${totalSpend}.
 Answer this question in 2-3 sentences max, be specific and helpful: ${userMessage}`
 
     try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o',
-          messages: [{ role: 'user', content: prompt }],
-          max_tokens: 150,
-        }),
-      })
-      const data = await response.json()
-      const aiReply = data.choices?.[0]?.message?.content || 'Sorry I could not process that.'
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${import.meta.env.VITE_GROQ_API_KEY}`,
+  },
+  body: JSON.stringify({
+    model: 'llama3-8b-8192',
+    messages: [{ role: 'user', content: prompt }],
+    max_tokens: 150,
+  }),
+})
+const data = await response.json()
+const aiReply = data.choices?.[0]?.message?.content || 'Sorry I could not process that.'
       setAiMessages(prev => [...prev, { role: 'ai', text: aiReply }])
     } catch {
       setAiMessages(prev => [...prev, { role: 'ai', text: 'Sorry, I could not connect to AI right now.' }])
