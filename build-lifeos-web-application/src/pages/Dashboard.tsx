@@ -1,25 +1,17 @@
 import { motion, useInView } from 'framer-motion'
-import { useRef } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import { useClerk, useUser } from '@clerk/clerk-react'
-import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
 import {
-  Bell, User, Mail, DollarSign, PenTool, Briefcase, BarChart2
+  Bell, Mail, DollarSign, PenTool, Briefcase, BarChart2
 } from 'lucide-react'
 import Sidebar from '../components/Sidebar'
+import { supabase } from '../lib/supabase'
 
 function useAnimateInView() {
   const ref = useRef(null)
   const isInView = useInView(ref, { once: true, margin: '-50px' })
   return { ref, isInView }
 }
-
-const stats = [
-  { label: 'Money Saved', value: '$342', sub: 'This month by AI' },
-  { label: 'Emails Handled', value: '47', sub: 'Drafted automatically' },
-  { label: 'Jobs Applied', value: '12', sub: 'Last 7 days' },
-  { label: 'Posts Scheduled', value: '28', sub: 'Next 30 days' },
-]
 
 const activities = [
   { icon: Mail, text: 'Drafted reply to job offer from Google', time: '2 minutes ago', badge: 'Review' },
@@ -48,24 +40,63 @@ export default function Dashboard() {
   const { ref: statsRef, isInView: statsInView } = useAnimateInView()
   const { signOut } = useClerk()
   const { user } = useUser()
-  const [realTransactions, setRealTransactions] = useState<any[]>([])
 
-useEffect(() => {
-  if (!user) return
+  const [transactions, setTransactions] = useState<any[]>([])
+  const [jobs, setJobs] = useState<any[]>([])
+  const [emails, setEmails] = useState<any[]>([])
+  const [content, setContent] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const fetchTransactions = async () => {
-    const { data, error } = await supabase
-      .from('transactions')
-      .select('*')
-      .eq('user_id', user.id)
+  useEffect(() => {
+    if (!user) return
 
-    if (!error && data) {
-      setRealTransactions(data)
+    const fetchData = async () => {
+      setLoading(true)
+
+      const [t, j, e, c] = await Promise.all([
+        supabase.from('transactions').select('*').eq('user_id', user.id),
+        supabase.from('jobs').select('*').eq('user_id', user.id),
+        supabase.from('emails').select('*').eq('user_id', user.id),
+        supabase.from('content').select('*').eq('user_id', user.id),
+      ])
+
+      if (t.data) setTransactions(t.data)
+      if (j.data) setJobs(j.data)
+      if (e.data) setEmails(e.data)
+      if (c.data) setContent(c.data)
+
+      setLoading(false)
     }
-  }
 
-  fetchTransactions()
-}, [user])
+    fetchData()
+  }, [user])
+
+  const totalSpend = transactions.reduce(
+    (sum, t) => sum + Number(t.amount || 0), 0
+  )
+
+  const stats = [
+    {
+      label: 'Total Transactions',
+      value: loading ? '...' : `$${totalSpend}`,
+      sub: `${transactions.length} transactions in database`
+    },
+    {
+      label: 'Emails Handled',
+      value: loading ? '...' : `${emails.length}`,
+      sub: 'In your database'
+    },
+    {
+      label: 'Jobs Applied',
+      value: loading ? '...' : `${jobs.length}`,
+      sub: 'Tracked in database'
+    },
+    {
+      label: 'Posts Scheduled',
+      value: loading ? '...' : `${content.length}`,
+      sub: 'In your database'
+    },
+  ]
 
   return (
     <motion.div
@@ -77,31 +108,31 @@ useEffect(() => {
     >
       <Sidebar />
       <main className="ml-0 md:ml-64 p-4 md:p-8">
+
         {/* Top Bar */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 gap-4">
           <div>
             <h1 className="font-instrument text-3xl text-white">
-  Good morning, {user?.firstName || 'there'}.
-</h1>
-            <p className="text-white/30 text-xs font-inter mt-1">
-  {realTransactions.length} transactions loaded from database
-</p>
-            <p className="text-white/40 text-sm font-inter mt-1">Here is what your agents did while you slept.</p>
+              Good morning, {user?.firstName || 'there'}.
+            </h1>
+            <p className="text-white/40 text-sm font-inter mt-1">
+              Here is what your agents did while you slept.
+            </p>
           </div>
           <div className="flex items-center gap-3">
-  <span className="text-white/40 text-sm font-inter hidden sm:block">
-    {user?.emailAddresses[0]?.emailAddress}
-  </span>
-  <div className="liquid-glass rounded-full p-3 text-white/60 hover:text-white cursor-pointer transition-colors">
-    <Bell size={18} />
-  </div>
-  <button
-    onClick={() => signOut()}
-    className="liquid-glass rounded-full px-5 py-2.5 text-white/50 text-sm hover:text-white transition-all font-inter"
-  >
-    Sign Out
-  </button>
-</div>
+            <span className="text-white/40 text-sm font-inter hidden sm:block">
+              {user?.emailAddresses[0]?.emailAddress}
+            </span>
+            <div className="liquid-glass rounded-full p-3 text-white/60 hover:text-white cursor-pointer transition-colors">
+              <Bell size={18} />
+            </div>
+            <button
+              onClick={() => signOut()}
+              className="liquid-glass rounded-full px-5 py-2.5 text-white/50 text-sm hover:text-white transition-all font-inter"
+            >
+              Sign Out
+            </button>
+          </div>
         </div>
 
         {/* Stats */}
@@ -115,8 +146,12 @@ useEffect(() => {
               whileHover={{ scale: 1.01 }}
               className="liquid-glass rounded-2xl p-6 hover:bg-white/[0.02] transition-all"
             >
-              <p className="text-white/40 text-xs tracking-widest uppercase mb-3 font-inter">{stat.label}</p>
-              <p className="font-instrument text-4xl text-white font-light mb-1">{stat.value}</p>
+              <p className="text-white/40 text-xs tracking-widest uppercase mb-3 font-inter">
+                {stat.label}
+              </p>
+              <p className="font-instrument text-4xl text-white font-light mb-1">
+                {stat.value}
+              </p>
               <p className="text-white/30 text-xs font-inter">{stat.sub}</p>
             </motion.div>
           ))}
@@ -130,7 +165,9 @@ useEffect(() => {
           className="liquid-glass rounded-3xl p-6 md:p-8 mb-6"
         >
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-white text-lg font-medium font-inter">Agent Activity</h2>
+            <h2 className="text-white text-lg font-medium font-inter">
+              Agent Activity
+            </h2>
             <div className="liquid-glass rounded-full px-4 py-1.5 flex items-center gap-2">
               <span className="text-white/60 text-xs font-inter">Live</span>
               <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
@@ -144,11 +181,17 @@ useEffect(() => {
                   <item.icon size={16} className="text-white/60" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-white/80 text-sm font-inter font-medium">{item.text}</p>
-                  <p className="text-white/30 text-xs mt-1 font-inter">{item.time}</p>
+                  <p className="text-white/80 text-sm font-inter font-medium">
+                    {item.text}
+                  </p>
+                  <p className="text-white/30 text-xs mt-1 font-inter">
+                    {item.time}
+                  </p>
                 </div>
                 <div className="liquid-glass rounded-full px-3 py-1 flex-shrink-0">
-                  <span className="text-white/50 text-xs font-inter">{item.badge}</span>
+                  <span className="text-white/50 text-xs font-inter">
+                    {item.badge}
+                  </span>
                 </div>
               </div>
             ))}
@@ -164,7 +207,9 @@ useEffect(() => {
             transition={{ duration: 0.5, delay: 0.4 }}
             className="liquid-glass rounded-3xl p-6 md:p-8"
           >
-            <h2 className="text-white text-lg font-medium mb-6 font-inter">Quick Actions</h2>
+            <h2 className="text-white text-lg font-medium mb-6 font-inter">
+              Quick Actions
+            </h2>
             <div className="grid grid-cols-2 gap-3">
               {quickActions.map((action) => (
                 <div
@@ -172,7 +217,9 @@ useEffect(() => {
                   className="liquid-glass rounded-2xl p-5 flex flex-col items-center gap-3 text-center hover:bg-white/5 transition-all cursor-pointer group"
                 >
                   <action.icon size={24} className="text-white/50 group-hover:text-white/80 transition-colors" />
-                  <span className="text-white/50 text-xs font-inter group-hover:text-white/70 transition-colors">{action.label}</span>
+                  <span className="text-white/50 text-xs font-inter group-hover:text-white/70 transition-colors">
+                    {action.label}
+                  </span>
                 </div>
               ))}
             </div>
@@ -185,15 +232,21 @@ useEffect(() => {
             transition={{ duration: 0.5, delay: 0.5 }}
             className="liquid-glass rounded-3xl p-6 md:p-8"
           >
-            <h2 className="text-white text-lg font-medium mb-6 font-inter">Coming Up</h2>
+            <h2 className="text-white text-lg font-medium mb-6 font-inter">
+              Coming Up
+            </h2>
             <div className="divide-y divide-white/5">
               {comingUp.map((item, i) => (
                 <div key={i} className="flex justify-between items-center py-4">
                   <div className="flex items-center gap-3">
                     <span className="w-1.5 h-1.5 rounded-full bg-white/30" />
-                    <span className="text-white/70 text-sm font-inter">{item.text}</span>
+                    <span className="text-white/70 text-sm font-inter">
+                      {item.text}
+                    </span>
                   </div>
-                  <span className="text-white/30 text-xs font-inter flex-shrink-0 ml-4">{item.time}</span>
+                  <span className="text-white/30 text-xs font-inter flex-shrink-0 ml-4">
+                    {item.time}
+                  </span>
                 </div>
               ))}
             </div>
