@@ -1,6 +1,8 @@
 import { motion, useInView } from 'framer-motion'
 import { useRef } from 'react'
 import { useClerk, useUser } from '@clerk/clerk-react'
+import { useEffect, useState } from 'react'
+import { supabase } from '../lib/supabase'
 import {
   Bell, User, Mail, DollarSign, PenTool, Briefcase, BarChart2
 } from 'lucide-react'
@@ -46,6 +48,24 @@ export default function Dashboard() {
   const { ref: statsRef, isInView: statsInView } = useAnimateInView()
   const { signOut } = useClerk()
   const { user } = useUser()
+  const [realTransactions, setRealTransactions] = useState<any[]>([])
+
+useEffect(() => {
+  if (!user) return
+
+  const fetchTransactions = async () => {
+    const { data, error } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('user_id', user.id)
+
+    if (!error && data) {
+      setRealTransactions(data)
+    }
+  }
+
+  fetchTransactions()
+}, [user])
 
   return (
     <motion.div
@@ -63,6 +83,9 @@ export default function Dashboard() {
             <h1 className="font-instrument text-3xl text-white">
   Good morning, {user?.firstName || 'there'}.
 </h1>
+            <p className="text-white/30 text-xs font-inter mt-1">
+  {realTransactions.length} transactions loaded from database
+</p>
             <p className="text-white/40 text-sm font-inter mt-1">Here is what your agents did while you slept.</p>
           </div>
           <div className="flex items-center gap-3">
