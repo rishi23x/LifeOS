@@ -1,6 +1,7 @@
 import { motion, useInView } from 'framer-motion'
 import { useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { SignInButton, SignUpButton, useAuth } from '@clerk/clerk-react'
 import {
   Brain, Zap, ArrowRight, DollarSign, Mail, Briefcase, PenTool,
   Link, TrendingUp, Check
@@ -27,15 +28,18 @@ function Navbar() {
           <a href="#pricing" className="text-white/70 hover:text-white text-sm transition-colors font-inter">Pricing</a>
           <a href="#about" className="text-white/70 hover:text-white text-sm transition-colors font-inter">About</a>
         </div>
-        <div className="flex items-center gap-4">
-          <span className="text-white text-sm font-medium cursor-pointer hover:text-white/80 transition-colors font-inter hidden sm:block">Sign In</span>
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="liquid-glass rounded-full px-6 py-2.5 text-white text-sm hover:scale-102 transition-transform font-inter"
-          >
-            Get Started Free
-          </button>
-        </div>
+       <div className="flex items-center gap-4">
+  <SignInButton mode="modal">
+    <span className="text-white text-sm font-medium cursor-pointer hover:text-white/80 transition-colors font-inter hidden sm:block">
+      Sign In
+    </span>
+  </SignInButton>
+  <SignUpButton mode="modal">
+    <button className="liquid-glass rounded-full px-6 py-2.5 text-white text-sm hover:scale-102 transition-transform font-inter">
+      Get Started Free
+    </button>
+  </SignUpButton>
+</div>
       </div>
     </nav>
   )
@@ -104,9 +108,11 @@ function Hero() {
               placeholder="Enter your email address"
               className="bg-transparent text-white placeholder:text-white/30 outline-none flex-1 text-sm font-inter"
             />
-            <button className="bg-white rounded-full p-3 hover:scale-105 transition-transform flex-shrink-0">
-              <ArrowRight size={20} className="text-black" />
-            </button>
+            <SignUpButton mode="modal">
+  <button className="bg-white rounded-full p-3 hover:scale-105 transition-transform flex-shrink-0">
+    <ArrowRight size={20} className="text-black" />
+  </button>
+</SignUpButton>
           </div>
           <p className="text-white/30 text-xs mt-3 font-inter">Free forever · No credit card required</p>
         </motion.div>
@@ -414,7 +420,7 @@ function Pricing() {
               </div>
 
               <button
-                onClick={() => navigate('/dashboard')}
+                ={() => navigate('/dashboard')}
                 className={`w-full rounded-full px-8 py-3.5 text-sm font-medium transition-all hover:scale-102 cursor-pointer ${
                   plan.featured
                     ? 'bg-white text-black font-semibold hover:bg-white/90'
