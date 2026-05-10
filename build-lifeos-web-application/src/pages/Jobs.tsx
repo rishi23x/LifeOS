@@ -1,6 +1,6 @@
 import { motion, useInView } from 'framer-motion'
 import { useRef, useState, useEffect } from 'react'
-import { MapPin, DollarSign, Clock, Search, Plus, Trash2, ArrowRight } from 'lucide-react'
+import { MapPin, DollarSign, Clock, Search, Plus, Trash2, ArrowRight, Zap } from 'lucide-react'
 import Sidebar from '../components/Sidebar'
 import { supabase } from '../lib/supabase'
 import { useUser } from '@clerk/clerk-react'
@@ -12,36 +12,6 @@ function useAnimateInView() {
 }
 
 const tabs = ['Find Jobs', 'My Resume', 'Applications', 'Interview Prep']
-
-const mockJobs = [
-  {
-    company: 'Google',
-    role: 'Senior Frontend Developer',
-    match: '94%',
-    location: 'San Francisco',
-    salary: '$180k-$220k',
-    type: 'Full-time',
-    desc: 'We are looking for an experienced developer to join our Chrome team and help build the next generation of web experiences.',
-  },
-  {
-    company: 'Stripe',
-    role: 'Full Stack Engineer',
-    match: '89%',
-    location: 'Remote',
-    salary: '$160k-$200k',
-    type: 'Full-time',
-    desc: 'Help us build the financial infrastructure of the internet. You will work on products that power millions of businesses.',
-  },
-  {
-    company: 'Anthropic',
-    role: 'AI Product Engineer',
-    match: '85%',
-    location: 'San Francisco',
-    salary: '$200k-$250k',
-    type: 'Full-time',
-    desc: 'Work on cutting-edge AI products that will shape the future of how humans interact with artificial intelligence.',
-  },
-]
 
 const statusColors: Record<string, string> = {
   'Applied': 'text-yellow-400/70',
@@ -70,6 +40,13 @@ export default function Jobs() {
   const [newNextAction, setNewNextAction] = useState('')
   const [adding, setAdding] = useState(false)
 
+  // AI Job Search
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchLocation, setSearchLocation] = useState('')
+  const [aiJobs, setAiJobs] = useState<any[]>([])
+  const [searching, setSearching] = useState(false)
+  const [hasSearched, setHasSearched] = useState(false)
+
   // AI states
   const [aiMessages, setAiMessages] = useState([
     {
@@ -85,6 +62,10 @@ export default function Jobs() {
   const [coverLetterCompany, setCoverLetterCompany] = useState('')
   const [coverLetter, setCoverLetter] = useState('')
   const [generatingCover, setGeneratingCover] = useState(false)
+
+  // Resume analysis state
+  const [resumeAnalysis, setResumeAnalysis] = useState('')
+  const [analyzingResume, setAnalyzingResume] = useState(false)
 
   // Fetch applications
   const fetchApplications = async () => {
@@ -149,11 +130,41 @@ export default function Jobs() {
       body: JSON.stringify({
         model: 'llama-3.3-70b-versatile',
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 400,
+        max_tokens: 500,
       }),
     })
     const data = await response.json()
     return data.choices?.[0]?.message?.content || 'Sorry I could not process that.'
+  }
+
+  // AI Job Search
+  const searchJobs = async () => {
+    if (!searchQuery) return
+    setSearching(true)
+    setHasSearched(true)
+
+    const prompt = `You are a job listing generator. Generate exactly 5 realistic job listings for the query: "${searchQuery}" ${searchLocation ? `in ${searchLocation}` : ''}.
+
+Return ONLY a valid JSON array with no extra text. Each object must have these exact keys:
+- company (string - real company name)
+- role (string - job title)
+- match (string - percentage like "92%")
+- location (string - city or Remote)
+- salary (string - range like "$120k-$160k")
+- type (string - Full-time or Part-time or Contract)
+- desc (string - 1 sentence job description)
+
+Return only the JSON array, nothing else.`
+
+    try {
+      const reply = await callGroq(prompt)
+      const cleaned = reply.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+      const parsed = JSON.parse(cleaned)
+      setAiJobs(parsed)
+    } catch {
+      setAiJobs([])
+    }
+    setSearching(false)
   }
 
   // AI Chat
@@ -168,9 +179,9 @@ export default function Jobs() {
       ? applications.map(a => `${a.role} at ${a.company} (${a.status})`).join(', ')
       : 'No applications yet'
 
-    const prompt = `You are a personal AI career coach. 
+    const prompt = `You are a personal AI career coach and interview expert.
 The user has applied to: ${appSummary}.
-Answer in 2-3 sentences, be specific and helpful: ${userMessage}`
+Answer in 2-4 sentences, be specific, actionable, and encouraging: ${userMessage}`
 
     try {
       const reply = await callGroq(prompt)
@@ -185,8 +196,8 @@ Answer in 2-3 sentences, be specific and helpful: ${userMessage}`
   const generateCoverLetter = async () => {
     if (!coverLetterJob || !coverLetterCompany) return
     setGeneratingCover(true)
-    const prompt = `Write a professional cover letter for a ${coverLetterJob} position at ${coverLetterCompany}. 
-Keep it concise, confident, and under 200 words. 
+    const prompt = `Write a professional cover letter for a ${coverLetterJob} position at ${coverLetterCompany}.
+Keep it concise, confident, and under 200 words.
 Make it sound human and genuine, not robotic.`
     try {
       const letter = await callGroq(prompt)
@@ -196,6 +207,35 @@ Make it sound human and genuine, not robotic.`
     }
     setGeneratingCover(false)
   }
+
+  // Analyze Resume
+  const analyzeResume = async () => {
+    setAnalyzingResume(true)
+    const appSummary = applications.length > 0
+      ? applications.map(a => `${a.role} at ${a.company}`).join(', ')
+      : 'No applications yet'
+
+    const prompt = `You are a resume and career expert. Based on these job applications: ${appSummary}.
+
+Provide a brief resume analysis with:
+1. Top 5 skills the user likely has (based on roles applied to)
+2. Resume score out of 100
+3. 2-3 specific improvement suggestions
+4. Recommended job titles to target next
+
+Keep it concise and actionable. Format with bullet points.`
+
+    try {
+      const analysis = await callGroq(prompt)
+      setResumeAnalysis(analysis)
+    } catch {
+      setResumeAnalysis('Could not analyze resume. Please try again.')
+    }
+    setAnalyzingResume(false)
+  }
+
+  // Display jobs (AI generated or empty state)
+  const displayJobs = aiJobs.length > 0 ? aiJobs : []
 
   return (
     <motion.div
@@ -259,27 +299,67 @@ Make it sound human and genuine, not robotic.`
               <div className="liquid-glass rounded-full flex-1 px-5 py-3 flex items-center gap-3">
                 <Search size={16} className="text-white/30" />
                 <input
-                  placeholder="Job title or keyword..."
+                  placeholder="Job title or keyword (e.g. Frontend Developer)..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && searchJobs()}
                   className="bg-transparent text-white placeholder:text-white/30 outline-none w-full text-sm font-inter"
                 />
               </div>
               <div className="liquid-glass rounded-full px-5 py-3 w-full md:w-48">
                 <input
                   placeholder="Location..."
+                  value={searchLocation}
+                  onChange={e => setSearchLocation(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && searchJobs()}
                   className="bg-transparent text-white placeholder:text-white/30 outline-none w-full text-sm font-inter"
                 />
               </div>
-              <button className="liquid-glass rounded-full px-6 py-3 text-white text-sm font-inter hover:bg-white/5 transition-all cursor-pointer whitespace-nowrap">
-                Search with AI
+              <button
+                onClick={searchJobs}
+                disabled={searching}
+                className="liquid-glass rounded-full px-6 py-3 text-white text-sm font-inter hover:bg-white/5 transition-all cursor-pointer whitespace-nowrap flex items-center gap-2"
+              >
+                <Zap size={14} />
+                {searching ? 'Searching...' : 'Search with AI'}
               </button>
             </div>
 
+            {/* Search Results */}
+            {searching && (
+              <div className="text-center py-12">
+                <p className="text-white/30 text-sm font-inter">
+                  🔍 AI is finding the best jobs for you...
+                </p>
+              </div>
+            )}
+
+            {!searching && hasSearched && displayJobs.length === 0 && (
+              <div className="text-center py-12">
+                <p className="text-white/30 text-sm font-inter">
+                  No jobs found. Try a different search term.
+                </p>
+              </div>
+            )}
+
+            {!searching && !hasSearched && (
+              <div className="text-center py-16">
+                <Zap size={48} className="text-white/10 mx-auto mb-4" />
+                <p className="text-white/30 text-sm font-inter mb-2">
+                  Search for any job title and AI will find matching opportunities.
+                </p>
+                <p className="text-white/20 text-xs font-inter">
+                  Try: "Software Engineer", "CFO", "Product Manager", "Data Scientist"
+                </p>
+              </div>
+            )}
+
             <div className="space-y-4">
-              {mockJobs.map((job, i) => (
+              {displayJobs.map((job: any, i: number) => (
                 <motion.div
-                  key={job.company}
+                  key={i}
                   initial={{ opacity: 0, y: 30 }}
-                  animate={isInView ? { opacity: 1, y: 0 } : {}}
+                  animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: i * 0.1 }}
                   whileHover={{ scale: 1.005 }}
                   className="liquid-glass rounded-2xl p-6 hover:bg-white/[0.02] transition-all"
@@ -390,40 +470,106 @@ Make it sound human and genuine, not robotic.`
                     onClick={() => navigator.clipboard.writeText(coverLetter)}
                     className="liquid-glass rounded-full px-5 py-2 text-white/50 text-xs font-inter mt-4 hover:bg-white/5 transition-all"
                   >
-                    Copy to Clipboard
+                    📋 Copy to Clipboard
                   </button>
                 </motion.div>
               )}
             </div>
 
-            {/* Resume Score */}
+            {/* Resume Analysis - AI Powered */}
             <div className="liquid-glass rounded-3xl p-6 md:p-8">
-              <h2 className="text-white text-lg font-medium mb-6 font-inter">
-                Resume Overview
-              </h2>
-              <div className="space-y-4">
-                <div>
-                  <p className="text-white/40 text-xs tracking-widest uppercase mb-2 font-inter">
-                    SKILLS DETECTED
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {['React', 'TypeScript', 'Node.js', 'Python', 'AWS', 'System Design', 'Leadership'].map(s => (
-                      <span key={s} className="liquid-glass rounded-full px-3 py-1 text-white/50 text-xs font-inter">
-                        {s}
-                      </span>
-                    ))}
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-white text-lg font-medium font-inter">
+                  Resume Overview
+                </h2>
+                <button
+                  onClick={analyzeResume}
+                  disabled={analyzingResume}
+                  className="liquid-glass rounded-full px-5 py-2 text-white/60 text-sm font-inter hover:bg-white/5 transition-all flex items-center gap-2"
+                >
+                  <Zap size={14} />
+                  {analyzingResume ? 'Analyzing...' : 'Analyze with AI'}
+                </button>
+              </div>
+
+              {!resumeAnalysis && !analyzingResume && (
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-white/40 text-xs tracking-widest uppercase mb-2 font-inter">
+                      APPLICATIONS TRACKED
+                    </p>
+                    <p className="font-instrument text-4xl text-white font-light">
+                      {applications.length}
+                    </p>
+                    <p className="text-white/30 text-xs font-inter mt-1">
+                      {applications.length > 0
+                        ? `Companies: ${[...new Set(applications.map(a => a.company))].join(', ')}`
+                        : 'Add applications to get AI resume analysis'
+                      }
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-white/40 text-xs tracking-widest uppercase mb-2 font-inter">
+                      ROLES APPLIED FOR
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {applications.length > 0 ? (
+                        [...new Set(applications.map(a => a.role))].map(role => (
+                          <span key={role} className="liquid-glass rounded-full px-3 py-1 text-white/50 text-xs font-inter">
+                            {role}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-white/30 text-sm font-inter">
+                          No roles tracked yet
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-white/40 text-xs tracking-widest uppercase mb-2 font-inter">
+                      STATUS BREAKDOWN
+                    </p>
+                    <div className="flex flex-wrap gap-3">
+                      {statusOptions.map(status => {
+                        const count = applications.filter(a => a.status === status).length
+                        if (count === 0) return null
+                        return (
+                          <span key={status} className={`liquid-glass rounded-full px-3 py-1 text-xs font-inter ${statusColors[status]}`}>
+                            {status}: {count}
+                          </span>
+                        )
+                      })}
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <p className="text-white/40 text-xs tracking-widest uppercase mb-2 font-inter">
-                    RESUME SCORE
-                  </p>
-                  <p className="font-instrument text-4xl text-white font-light">92/100</p>
-                  <p className="text-white/30 text-xs font-inter mt-1">
-                    Excellent — your resume is well optimized
+              )}
+
+              {analyzingResume && (
+                <div className="text-center py-8">
+                  <p className="text-white/30 text-sm font-inter">
+                    🧠 AI is analyzing your career profile...
                   </p>
                 </div>
-              </div>
+              )}
+
+              {resumeAnalysis && !analyzingResume && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="liquid-glass rounded-2xl p-6"
+                >
+                  <p className="text-white/70 text-sm leading-relaxed font-inter whitespace-pre-wrap">
+                    {resumeAnalysis}
+                  </p>
+                  <button
+                    onClick={() => setResumeAnalysis('')}
+                    className="liquid-glass rounded-full px-5 py-2 text-white/40 text-xs font-inter mt-4 hover:bg-white/5 transition-all"
+                  >
+                    Show Raw Stats
+                  </button>
+                </motion.div>
+              )}
             </div>
           </motion.div>
         )}
@@ -571,13 +717,12 @@ Make it sound human and genuine, not robotic.`
             transition={{ duration: 0.4 }}
             className="space-y-6"
           >
-            {/* AI Interview Coach */}
             <div className="liquid-glass rounded-3xl p-6 md:p-8">
               <h2 className="text-white text-lg font-medium mb-6 font-inter">
                 AI Interview Coach
               </h2>
 
-              <div className="min-h-48 mb-4 space-y-3 max-h-64 overflow-y-auto">
+              <div className="min-h-48 mb-4 space-y-3 max-h-80 overflow-y-auto">
                 {aiMessages.map((msg, i) => (
                   <div
                     key={i}
@@ -620,28 +765,26 @@ Make it sound human and genuine, not robotic.`
               </div>
             </div>
 
-            {/* Common Questions */}
             <div className="liquid-glass rounded-3xl p-6 md:p-8">
               <h2 className="text-white text-lg font-medium mb-6 font-inter">
                 Common Interview Questions
               </h2>
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {[
                   { q: 'Tell me about yourself', hint: 'Focus on your recent experience and what drives you.' },
                   { q: 'Why do you want to work here?', hint: 'Research the company mission and connect it to your goals.' },
-                  { q: 'Describe a challenging technical problem you solved', hint: 'Use the STAR method for structure.' },
+                  { q: 'Describe a challenging problem you solved', hint: 'Use the STAR method for structure.' },
                   { q: 'Where do you see yourself in 5 years?', hint: 'Show ambition but also commitment to the role.' },
-                  { q: 'What is your greatest weakness?', hint: 'Be honest but show self-awareness and improvement.' },
+                  { q: 'What is your greatest weakness?', hint: 'Be honest but show self-awareness and growth.' },
                 ].map((item, i) => (
                   <div
                     key={i}
-                    className="liquid-glass rounded-2xl p-6 cursor-pointer hover:bg-white/[0.02] transition-all"
+                    className="liquid-glass rounded-2xl p-5 cursor-pointer hover:bg-white/[0.02] transition-all"
                     onClick={() => {
-                      setAiInput(`Help me answer this interview question: "${item.q}"`)
-                      setActiveTab(3)
+                      setAiInput(`Help me answer: "${item.q}"`)
                     }}
                   >
-                    <p className="text-white/80 text-sm font-medium font-inter mb-2">
+                    <p className="text-white/80 text-sm font-medium font-inter mb-1">
                       {item.q}
                     </p>
                     <p className="text-white/40 text-xs font-inter">
