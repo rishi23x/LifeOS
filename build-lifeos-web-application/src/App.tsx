@@ -26,11 +26,29 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+function HomeRoute() {
+  const { isSignedIn, isLoaded } = useAuth()
+
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-white/40 text-sm">Loading...</div>
+      </div>
+    )
+  }
+
+  if (isSignedIn) {
+    return <Navigate to="/dashboard" replace />
+  }
+
+  return <LandingPage />
+}
+
 function App() {
   return (
     <AnimatePresence mode="wait">
       <Routes>
-        <Route path="/" element={<LandingPage />} />
+        <Route path="/" element={<HomeRoute />} />
         <Route path="/dashboard" element={
           <ProtectedRoute>
             <Dashboard />
