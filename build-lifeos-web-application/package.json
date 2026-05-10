@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "clsx": "2.1.1",
+    "@clerk/clerk-react": "^5.2.4",
     "framer-motion": "^12.38.0",
     "lucide-react": "^1.14.0",
     "react": "19.2.6",
