@@ -1,5 +1,6 @@
 import { motion, useInView } from 'framer-motion'
 import { useRef } from 'react'
+import { useClerk, useUser } from '@clerk/clerk-react'
 import {
   Bell, User, Mail, DollarSign, PenTool, Briefcase, BarChart2
 } from 'lucide-react'
@@ -43,6 +44,8 @@ const comingUp = [
 
 export default function Dashboard() {
   const { ref: statsRef, isInView: statsInView } = useAnimateInView()
+  const { signOut } = useClerk()
+  const { user } = useUser()
 
   return (
     <motion.div
@@ -57,17 +60,25 @@ export default function Dashboard() {
         {/* Top Bar */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 gap-4">
           <div>
-            <h1 className="font-instrument text-3xl text-white">Good morning.</h1>
+            <h1 className="font-instrument text-3xl text-white">
+  Good morning, {user?.firstName || 'there'}.
+</h1>
             <p className="text-white/40 text-sm font-inter mt-1">Here is what your agents did while you slept.</p>
           </div>
           <div className="flex items-center gap-3">
-            <div className="liquid-glass rounded-full p-3 text-white/60 hover:text-white cursor-pointer transition-colors">
-              <Bell size={18} />
-            </div>
-            <div className="liquid-glass rounded-full w-10 h-10 flex items-center justify-center">
-              <User size={18} className="text-white/60" />
-            </div>
-          </div>
+  <span className="text-white/40 text-sm font-inter hidden sm:block">
+    {user?.emailAddresses[0]?.emailAddress}
+  </span>
+  <div className="liquid-glass rounded-full p-3 text-white/60 hover:text-white cursor-pointer transition-colors">
+    <Bell size={18} />
+  </div>
+  <button
+    onClick={() => signOut()}
+    className="liquid-glass rounded-full px-5 py-2.5 text-white/50 text-sm hover:text-white transition-all font-inter"
+  >
+    Sign Out
+  </button>
+</div>
         </div>
 
         {/* Stats */}
