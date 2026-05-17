@@ -6,10 +6,10 @@ import { supabase } from '../lib/supabase'
 import { useUser } from '@clerk/clerk-react'
 
 const platforms = [
-  { name: 'Twitter/X', connected: true, followers: '2.4k followers' },
-  { name: 'Instagram', connected: true, followers: '8.7k followers' },
-  { name: 'LinkedIn', connected: true, followers: '1.2k followers' },
-  { name: 'YouTube', connected: false, followers: '' },
+  { name: 'Twitter/X', connected: false, followers: 'Copy & paste posts' },
+  { name: 'Instagram', connected: false, followers: 'Copy & paste posts' },
+  { name: 'LinkedIn', connected: false, followers: 'Copy & paste posts' },
+  { name: 'YouTube', connected: false, followers: 'Coming soon' },
 ]
 
 const platformSelectors = ['Twitter', 'Instagram', 'LinkedIn', 'All']
