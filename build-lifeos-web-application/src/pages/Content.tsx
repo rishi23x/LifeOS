@@ -5,12 +5,9 @@ import Sidebar from '../components/Sidebar'
 import { supabase } from '../lib/supabase'
 import { useUser } from '@clerk/clerk-react'
 
-const platforms = [
-  { name: 'Twitter/X', connected: false, followers: 'Copy & paste posts' },
-  { name: 'Instagram', connected: false, followers: 'Copy & paste posts' },
-  { name: 'LinkedIn', connected: false, followers: 'Copy & paste posts' },
-  { name: 'YouTube', connected: false, followers: 'Coming soon' },
-]
+const BUFFER_CLIENT_ID = import.meta.env.VITE_BUFFER_CLIENT_ID
+const BUFFER_REDIRECT_URI = `${window.location.origin}/dashboard/content`
+const BUFFER_AUTH_URL = `https://bufferapp.com/oauth2/authorize?client_id=${BUFFER_CLIENT_ID}&redirect_uri=${encodeURIComponent(BUFFER_REDIRECT_URI)}&response_type=code`
 
 const platformSelectors = ['Twitter', 'Instagram', 'LinkedIn', 'All']
 
@@ -27,6 +24,13 @@ function generateCalendar() {
 
 export default function Content() {
   const { user } = useUser()
+  const [bufferConnected, setBufferConnected] = useState(false)
+const [bufferProfiles, setBufferProfiles] = useState<any[]>([])
+const [bufferToken, setBufferToken] = useState<string | null>(
+  localStorage.getItem('buffer_token')
+)
+const [publishingIndex, setPublishingIndex] = useState<number | null>(null)
+const [publishSuccess, setPublishSuccess] = useState<number | null>(null)
   const [activePlatform, setActivePlatform] = useState(3)
   const [niche, setNiche] = useState('')
   const [goal, setGoal] = useState('')
@@ -44,7 +48,101 @@ export default function Content() {
     Instagram: 'bg-pink-400/40',
     LinkedIn: 'bg-blue-600/40',
   }
+  useEffect(() => {
+  const params = new URLSearchParams(window.location.search)
+  const code = params.get('code')
 
+  if (code && !bufferToken) {
+    exchangeBufferCode(code)
+    window.history.replaceState({}, '', '/dashboard/content')
+  }
+
+  if (bufferToken) {
+    setBufferConnected(true)
+    fetchBufferProfiles(bufferToken)
+  }
+}, [])
+
+const exchangeBufferCode = async (code: string) => {
+  try {
+    const response = await fetch('https://api.bufferapp.com/1/oauth2/token.json', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: import.meta.env.VITE_BUFFER_CLIENT_ID,
+        client_secret: import.meta.env.VITE_BUFFER_CLIENT_SECRET,
+        redirect_uri: BUFFER_REDIRECT_URI,
+        code,
+        grant_type: 'authorization_code',
+      }),
+    })
+    const data = await response.json()
+    if (data.access_token) {
+      localStorage.setItem('buffer_token', data.access_token)
+      setBufferToken(data.access_token)
+      setBufferConnected(true)
+      fetchBufferProfiles(data.access_token)
+    }
+  } catch (error) {
+    console.error('Buffer OAuth error:', error)
+  }
+}
+
+const fetchBufferProfiles = async (token: string) => {
+  try {
+    const response = await fetch(
+      `https://api.bufferapp.com/1/profiles.json?access_token=${token}`
+    )
+    const data = await response.json()
+    if (Array.isArray(data)) {
+      setBufferProfiles(data)
+    }
+  } catch (error) {
+    console.error('Buffer profiles error:', error)
+  }
+}
+
+const publishToBuffer = async (post: any, index: number) => {
+  if (!bufferToken || bufferProfiles.length === 0) return
+  setPublishingIndex(index)
+
+  try {
+    const profile = bufferProfiles.find(
+      p => p.service.toLowerCase() === post.platform.toLowerCase()
+    ) || bufferProfiles[0]
+
+    const response = await fetch(
+      'https://api.bufferapp.com/1/updates/create.json',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          access_token: bufferToken,
+          text: post.text + '\n\n' + post.hashtags,
+          'profile_ids[]': profile.id,
+        }),
+      }
+    )
+    const data = await response.json()
+    if (data.success) {
+      setPublishSuccess(index)
+      setTimeout(() => setPublishSuccess(null), 3000)
+      await savePost(post, index)
+    }
+  } catch (error) {
+    console.error('Buffer publish error:', error)
+  }
+  setPublishingIndex(null)
+}
+
+const disconnectBuffer = () => {
+  localStorage.removeItem('buffer_token')
+  setBufferToken(null)
+  setBufferConnected(false)
+  setBufferProfiles([])
+}
   // Fetch saved posts
   const fetchSavedPosts = async () => {
     if (!user) return
@@ -205,31 +303,82 @@ Example format:
           </div>
         </div>
 
-        {/* Platform Row */}
-        <div className="flex flex-wrap gap-4 mb-8">
-          {platforms.map((p) => (
-            <div key={p.name} className="liquid-glass rounded-2xl px-6 py-4 flex items-center gap-3">
-              <div className="w-5 h-5 rounded-full bg-white/10 flex-shrink-0" />
-              <div>
-                <span className="text-white/70 text-sm font-inter">{p.name}</span>
-                {p.connected ? (
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-green-400/60 text-xs font-inter">Connected</span>
-                    {p.followers && (
-                      <span className="text-white/30 text-xs font-inter">· {p.followers}</span>
-                    )}
-                  </div>
-                ) : (
-                  <div className="mt-0.5">
-                    <span className="liquid-glass rounded-full px-3 py-1 text-white/40 text-xs font-inter cursor-pointer hover:text-white/60 transition-colors">
-                      Connect
-                    </span>
-                  </div>
-                )}
-              </div>
+        {/* Buffer Connection */}
+<div className="liquid-glass rounded-3xl p-6 mb-8">
+  <div className="flex justify-between items-center mb-4">
+    <h2 className="text-white text-lg font-medium font-inter">
+      Connected Platforms
+    </h2>
+    {bufferConnected ? (
+      <button
+        onClick={disconnectBuffer}
+        className="liquid-glass rounded-full px-4 py-2 text-red-400/60 text-xs font-inter hover:bg-white/5 transition-all"
+      >
+        Disconnect Buffer
+      </button>
+    ) : (
+      <a
+        href={BUFFER_AUTH_URL}
+        className="liquid-glass rounded-full px-5 py-2.5 text-white text-sm font-inter hover:bg-white/5 transition-all flex items-center gap-2"
+      >
+        <Zap size={14} />
+        Connect via Buffer
+      </a>
+    )}
+  </div>
+
+  {bufferConnected && bufferProfiles.length > 0 ? (
+    <div className="flex flex-wrap gap-4">
+      {bufferProfiles.map((profile: any) => (
+        <div
+          key={profile.id}
+          className="liquid-glass rounded-2xl px-6 py-4 flex items-center gap-3"
+        >
+          <div className="w-5 h-5 rounded-full bg-white/10 flex-shrink-0" />
+          <div>
+            <span className="text-white/70 text-sm font-inter capitalize">
+              {profile.service}
+            </span>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="text-green-400/60 text-xs font-inter">
+                Connected
+              </span>
+              <span className="text-white/30 text-xs font-inter">
+                · {profile.formatted_username}
+              </span>
             </div>
-          ))}
+          </div>
         </div>
+      ))}
+    </div>
+  ) : bufferConnected ? (
+    <p className="text-white/30 text-sm font-inter">
+      Loading your connected accounts...
+    </p>
+  ) : (
+    <div className="flex flex-wrap gap-4">
+      {[
+        { name: 'Twitter/X', msg: 'Connect via Buffer' },
+        { name: 'Instagram', msg: 'Connect via Buffer' },
+        { name: 'LinkedIn', msg: 'Connect via Buffer' },
+        { name: 'YouTube', msg: 'Coming soon' },
+      ].map((p) => (
+        <div
+          key={p.name}
+          className="liquid-glass rounded-2xl px-6 py-4 flex items-center gap-3"
+        >
+          <div className="w-5 h-5 rounded-full bg-white/10 flex-shrink-0" />
+          <div>
+            <span className="text-white/70 text-sm font-inter">{p.name}</span>
+            <div className="mt-0.5">
+              <span className="text-white/30 text-xs font-inter">{p.msg}</span>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  )}
+</div>
 
         {/* Tab Selector */}
         <div className="liquid-glass rounded-full flex p-1 mb-8 w-fit">
@@ -359,22 +508,48 @@ Example format:
                       </p>
 
                       <div className="flex gap-2 flex-wrap">
-                        <button
-                          onClick={() => copyPost(post.text + '\n\n' + post.hashtags)}
-                          className="liquid-glass rounded-full px-4 py-1.5 text-xs text-white/50 font-inter hover:bg-white/5 transition-all cursor-pointer flex items-center gap-1"
-                        >
-                          <Copy size={12} />
-                          Copy
-                        </button>
-                        <button
-                          onClick={() => savePost(post, i)}
-                          disabled={savingIndex === i}
-                          className="liquid-glass rounded-full px-4 py-1.5 text-xs text-white/60 font-inter hover:bg-white/5 transition-all cursor-pointer flex items-center gap-1"
-                        >
-                          <Calendar size={12} />
-                          {savingIndex === i ? 'Saving...' : 'Save & Schedule'}
-                        </button>
-                      </div>
+  <button
+    onClick={() => copyPost(post.text + '\n\n' + post.hashtags)}
+    className="liquid-glass rounded-full px-4 py-1.5 text-xs text-white/50 font-inter hover:bg-white/5 transition-all cursor-pointer flex items-center gap-1"
+  >
+    <Copy size={12} />
+    Copy
+  </button>
+  <button
+    onClick={() => savePost(post, i)}
+    disabled={savingIndex === i}
+    className="liquid-glass rounded-full px-4 py-1.5 text-xs text-white/60 font-inter hover:bg-white/5 transition-all cursor-pointer flex items-center gap-1"
+  >
+    <Calendar size={12} />
+    {savingIndex === i ? 'Saving...' : 'Save'}
+  </button>
+  {bufferConnected ? (
+    <button
+      onClick={() => publishToBuffer(post, i)}
+      disabled={publishingIndex === i}
+      className={`liquid-glass rounded-full px-4 py-1.5 text-xs font-inter hover:bg-white/5 transition-all cursor-pointer flex items-center gap-1 ${
+        publishSuccess === i
+          ? 'text-green-400/70'
+          : 'text-white/60'
+      }`}
+    >
+      <Zap size={12} />
+      {publishingIndex === i
+        ? 'Publishing...'
+        : publishSuccess === i
+        ? '✅ Published!'
+        : 'Publish to Buffer'}
+    </button>
+  ) : (
+    <a
+      href={BUFFER_AUTH_URL}
+      className="liquid-glass rounded-full px-4 py-1.5 text-xs text-white/40 font-inter hover:bg-white/5 transition-all cursor-pointer flex items-center gap-1"
+    >
+      <Zap size={12} />
+      Connect to Publish
+    </a>
+  )}
+</div>
                     </motion.div>
                   ))}
                 </div>
