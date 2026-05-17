@@ -1,86 +1,187 @@
 import { motion } from 'framer-motion'
-import { useState } from 'react'
-import { Zap } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Zap, Trash2, Copy, Calendar } from 'lucide-react'
 import Sidebar from '../components/Sidebar'
+import { supabase } from '../lib/supabase'
+import { useUser } from '@clerk/clerk-react'
 
 const platforms = [
-  { name: 'Twitter/X', status: 'Connected', followers: '2.4k followers', connected: true },
-  { name: 'Instagram', status: 'Connected', followers: '8.7k followers', connected: true },
-  { name: 'LinkedIn', status: 'Connected', followers: '1.2k followers', connected: true },
-  { name: 'YouTube', status: 'Connect', followers: '', connected: false },
-]
-
-const contentIdeas = [
-  {
-    day: '01', platform: 'LinkedIn',
-    text: 'The AI agent revolution is not coming. It is already here. Here is what that means for your career in 2026: 🧵',
-  },
-  {
-    day: '02', platform: 'Twitter',
-    text: 'Unpopular opinion: The people who will be richest in 2030 are not learning to code. They are learning to manage AI agents. Here is the difference:',
-  },
-  {
-    day: '03', platform: 'Instagram',
-    text: 'What if you never had to write another email again? Your AI does it in your voice. You just hit send. This is the future we built. #LifeOS',
-  },
-  {
-    day: '04', platform: 'LinkedIn',
-    text: 'I automated 80% of my work life. Here is exactly what my AI agents do every single day:',
-  },
-  {
-    day: '05', platform: 'Twitter',
-    text: 'The biggest skill of 2026 is not prompt engineering. It is knowing WHAT to delegate to AI agents and WHAT to keep human.',
-  },
+  { name: 'Twitter/X', connected: true, followers: '2.4k followers' },
+  { name: 'Instagram', connected: true, followers: '8.7k followers' },
+  { name: 'LinkedIn', connected: true, followers: '1.2k followers' },
+  { name: 'YouTube', connected: false, followers: '' },
 ]
 
 const platformSelectors = ['Twitter', 'Instagram', 'LinkedIn', 'All']
 
-// Generate calendar data for June 2026
 function generateCalendar() {
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-  // June 2026 starts on Monday (day index 1)
   const startDay = 1
   const daysInMonth = 30
-
   const calendarCells: (number | null)[] = []
   for (let i = 0; i < startDay; i++) calendarCells.push(null)
   for (let i = 1; i <= daysInMonth; i++) calendarCells.push(i)
   while (calendarCells.length % 7 !== 0) calendarCells.push(null)
-
-  // Scatter posts across days
-  const postDays: Record<number, { platform: string; title: string }[]> = {
-    1: [{ platform: 'LI', title: 'AI revolution' }],
-    2: [{ platform: 'TW', title: 'Manage AI agents' }],
-    3: [{ platform: 'IG', title: 'No more emails' }],
-    5: [{ platform: 'LI', title: 'My AI agents' }],
-    6: [{ platform: 'TW', title: 'Biggest skill' }],
-    8: [{ platform: 'IG', title: 'Future of work' }],
-    9: [{ platform: 'LI', title: 'Career tips' }],
-    11: [{ platform: 'TW', title: 'AI tools list' }],
-    13: [{ platform: 'IG', title: 'Behind scenes' }],
-    14: [{ platform: 'LI', title: 'Leadership AI' }],
-    16: [{ platform: 'TW', title: 'Hot take' }],
-    18: [{ platform: 'IG', title: 'Product demo' }],
-    19: [{ platform: 'LI', title: 'Case study' }],
-    21: [{ platform: 'TW', title: 'Thread time' }],
-    23: [{ platform: 'IG', title: 'Motivation' }],
-    25: [{ platform: 'LI', title: 'Industry news' }],
-    26: [{ platform: 'TW', title: 'Quick tip' }],
-    28: [{ platform: 'IG', title: 'User story' }],
-    30: [{ platform: 'LI', title: 'Month recap' }],
-  }
-
-  return { days, calendarCells, postDays }
+  return { days, calendarCells }
 }
 
 export default function Content() {
-  const [activePlatform, setActivePlatform] = useState(3) // "All" selected
-  const { days, calendarCells, postDays } = generateCalendar()
+  const { user } = useUser()
+  const [activePlatform, setActivePlatform] = useState(3)
+  const [niche, setNiche] = useState('')
+  const [goal, setGoal] = useState('')
+  const [generating, setGenerating] = useState(false)
+  const [generatedPosts, setGeneratedPosts] = useState<any[]>([])
+  const [savedPosts, setSavedPosts] = useState<any[]>([])
+  const [loadingSaved, setLoadingSaved] = useState(true)
+  const [savingIndex, setSavingIndex] = useState<number | null>(null)
+  const [activeTab, setActiveTab] = useState<'generate' | 'saved' | 'calendar'>('generate')
+
+  const { days, calendarCells } = generateCalendar()
 
   const platformColors: Record<string, string> = {
-    TW: 'bg-blue-400/40',
-    IG: 'bg-pink-400/40',
-    LI: 'bg-blue-600/40',
+    Twitter: 'bg-blue-400/40',
+    Instagram: 'bg-pink-400/40',
+    LinkedIn: 'bg-blue-600/40',
+  }
+
+  // Fetch saved posts
+  const fetchSavedPosts = async () => {
+    if (!user) return
+    setLoadingSaved(true)
+    const { data, error } = await supabase
+      .from('content')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+    if (!error && data) setSavedPosts(data)
+    setLoadingSaved(false)
+  }
+
+  useEffect(() => {
+    fetchSavedPosts()
+  }, [user])
+
+  // Call Groq
+  const callGroq = async (prompt: string) => {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${import.meta.env.VITE_GROQ_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 1000,
+      }),
+    })
+    const data = await response.json()
+    return data.choices?.[0]?.message?.content || ''
+  }
+
+  // Generate content
+  const generateContent = async () => {
+    if (!niche) return
+    setGenerating(true)
+
+    const selectedPlatform = activePlatform === 3
+      ? 'Twitter, Instagram, and LinkedIn'
+      : platformSelectors[activePlatform]
+
+    const prompt = `You are a social media content expert.
+Generate exactly 5 engaging social media posts for someone in the "${niche}" niche.
+Their goal is: "${goal || 'grow their audience'}".
+Platforms: ${selectedPlatform}.
+
+Return ONLY a valid JSON array. No extra text. No markdown. Just the JSON array.
+Each object must have exactly these keys:
+- platform (string: "Twitter", "Instagram", or "LinkedIn")
+- text (string: the actual post content, engaging and ready to publish)
+- hashtags (string: 3-5 relevant hashtags)
+
+Example format:
+[{"platform":"Twitter","text":"Your post here","hashtags":"#AI #Tech #Future"}]`
+
+    try {
+      const reply = await callGroq(prompt)
+      const cleaned = reply
+        .replace(/```json\n?/g, '')
+        .replace(/```\n?/g, '')
+        .trim()
+      const parsed = JSON.parse(cleaned)
+      setGeneratedPosts(parsed)
+    } catch {
+      // Fallback if JSON parse fails
+      setGeneratedPosts([
+        {
+          platform: 'LinkedIn',
+          text: `The future of ${niche} is being rewritten right now. Here is what you need to know to stay ahead in 2026:`,
+          hashtags: `#${niche.replace(/\s/g, '')} #Future #Innovation`
+        },
+        {
+          platform: 'Twitter',
+          text: `Hot take: Most people in ${niche} are still using 2020 strategies. Here is what actually works in 2026:`,
+          hashtags: `#${niche.replace(/\s/g, '')} #Tips #Growth`
+        },
+        {
+          platform: 'Instagram',
+          text: `3 things I wish I knew earlier about ${niche}:\n\n1. Start before you feel ready\n2. Consistency beats perfection\n3. Your audience wants authenticity`,
+          hashtags: `#${niche.replace(/\s/g, '')} #Motivation #Success`
+        },
+        {
+          platform: 'LinkedIn',
+          text: `I spent 30 days studying the top performers in ${niche}. Here is the one thing they all have in common:`,
+          hashtags: `#${niche.replace(/\s/g, '')} #Leadership #Growth`
+        },
+        {
+          platform: 'Twitter',
+          text: `If you want to succeed in ${niche} in 2026, stop doing these 3 things immediately:`,
+          hashtags: `#${niche.replace(/\s/g, '')} #Career #Advice`
+        }
+      ])
+    }
+    setGenerating(false)
+  }
+
+  // Save post to Supabase
+  const savePost = async (post: any, index: number) => {
+    if (!user) return
+    setSavingIndex(index)
+    const { error } = await supabase.from('content').insert({
+      user_id: user.id,
+      platform: post.platform,
+      post_text: post.text + '\n\n' + post.hashtags,
+      status: 'scheduled',
+      scheduled_at: new Date(
+        Date.now() + (index + 1) * 24 * 60 * 60 * 1000
+      ).toISOString(),
+    })
+    if (!error) {
+      fetchSavedPosts()
+      setActiveTab('saved')
+    }
+    setSavingIndex(null)
+  }
+
+  // Delete saved post
+  const deletePost = async (id: string) => {
+    await supabase.from('content').delete().eq('id', id)
+    fetchSavedPosts()
+  }
+
+  // Copy to clipboard
+  const copyPost = (text: string) => {
+    navigator.clipboard.writeText(text)
+  }
+
+  // Get posts for calendar day
+  const getPostsForDay = (day: number) => {
+    return savedPosts.filter(post => {
+      if (!post.scheduled_at) return false
+      const postDay = new Date(post.scheduled_at).getDate()
+      return postDay === day
+    })
   }
 
   return (
@@ -93,10 +194,15 @@ export default function Content() {
     >
       <Sidebar />
       <main className="ml-0 md:ml-64 p-4 md:p-8">
+
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="font-instrument text-4xl text-white mb-2">Content Manager</h1>
-          <p className="text-white/40 text-sm font-inter">28 posts scheduled for the next 30 days.</p>
+        <div className="flex justify-between items-start mb-8">
+          <div>
+            <h1 className="font-instrument text-4xl text-white mb-2">Content Manager</h1>
+            <p className="text-white/40 text-sm font-inter">
+              {savedPosts.length} posts saved in your database.
+            </p>
+          </div>
         </div>
 
         {/* Platform Row */}
@@ -109,11 +215,15 @@ export default function Content() {
                 {p.connected ? (
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className="text-green-400/60 text-xs font-inter">Connected</span>
-                    {p.followers && <span className="text-white/30 text-xs font-inter">· {p.followers}</span>}
+                    {p.followers && (
+                      <span className="text-white/30 text-xs font-inter">· {p.followers}</span>
+                    )}
                   </div>
                 ) : (
                   <div className="mt-0.5">
-                    <span className="liquid-glass rounded-full px-3 py-1 text-white/40 text-xs font-inter cursor-pointer hover:text-white/60 transition-colors">Connect</span>
+                    <span className="liquid-glass rounded-full px-3 py-1 text-white/40 text-xs font-inter cursor-pointer hover:text-white/60 transition-colors">
+                      Connect
+                    </span>
                   </div>
                 )}
               </div>
@@ -121,129 +231,303 @@ export default function Content() {
           ))}
         </div>
 
-        {/* Generate Content */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.1 }}
-          className="liquid-glass rounded-3xl p-6 md:p-8 mb-6"
-        >
-          <h2 className="text-white text-lg font-medium mb-6 font-inter">Generate Content</h2>
+        {/* Tab Selector */}
+        <div className="liquid-glass rounded-full flex p-1 mb-8 w-fit">
+          {[
+            { key: 'generate', label: '✨ Generate' },
+            { key: 'saved', label: `📁 Saved (${savedPosts.length})` },
+            { key: 'calendar', label: '📅 Calendar' },
+          ].map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key as any)}
+              className={`rounded-full px-6 py-2.5 text-sm font-inter transition-all cursor-pointer whitespace-nowrap ${
+                activeTab === tab.key
+                  ? 'bg-white/10 text-white'
+                  : 'text-white/40 hover:text-white/60'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
 
-          <div className="flex flex-col md:flex-row gap-4 mb-4">
-            <div className="liquid-glass rounded-full flex-1 px-5 py-3">
-              <input
-                placeholder="Your niche (e.g. AI, finance, fitness...)"
-                className="bg-transparent text-white placeholder:text-white/30 outline-none w-full text-sm font-inter"
-              />
-            </div>
-            <div className="liquid-glass rounded-full flex-1 px-5 py-3">
-              <input
-                placeholder="Your goal (e.g. grow followers, get clients...)"
-                className="bg-transparent text-white placeholder:text-white/30 outline-none w-full text-sm font-inter"
-              />
-            </div>
-          </div>
+        {/* GENERATE TAB */}
+        {activeTab === 'generate' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="space-y-6"
+          >
+            {/* Generate Form */}
+            <div className="liquid-glass rounded-3xl p-6 md:p-8">
+              <h2 className="text-white text-lg font-medium mb-6 font-inter">
+                Generate Content with AI
+              </h2>
 
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-            <div className="flex gap-2 flex-wrap">
-              {platformSelectors.map((p, i) => (
+              <div className="flex flex-col md:flex-row gap-4 mb-4">
+                <div className="liquid-glass rounded-full flex-1 px-5 py-3">
+                  <input
+                    placeholder="Your niche (e.g. AI, finance, fitness...)"
+                    value={niche}
+                    onChange={e => setNiche(e.target.value)}
+                    className="bg-transparent text-white placeholder:text-white/30 outline-none w-full text-sm font-inter"
+                  />
+                </div>
+                <div className="liquid-glass rounded-full flex-1 px-5 py-3">
+                  <input
+                    placeholder="Your goal (e.g. grow followers, get clients...)"
+                    value={goal}
+                    onChange={e => setGoal(e.target.value)}
+                    className="bg-transparent text-white placeholder:text-white/30 outline-none w-full text-sm font-inter"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                <div className="flex gap-2 flex-wrap">
+                  {platformSelectors.map((p, i) => (
+                    <button
+                      key={p}
+                      onClick={() => setActivePlatform(i)}
+                      className={`liquid-glass rounded-full px-4 py-2 text-sm font-inter transition-all cursor-pointer ${
+                        activePlatform === i
+                          ? 'bg-white/10 text-white'
+                          : 'text-white/50 hover:text-white'
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
                 <button
-                  key={p}
-                  onClick={() => setActivePlatform(i)}
-                  className={`liquid-glass rounded-full px-4 py-2 text-sm font-inter transition-all cursor-pointer ${
-                    activePlatform === i ? 'bg-white/10 text-white' : 'text-white/50 hover:text-white'
-                  }`}
+                  onClick={generateContent}
+                  disabled={generating || !niche}
+                  className="liquid-glass rounded-full px-8 py-3 flex items-center gap-2 text-white text-sm font-medium font-inter hover:bg-white/5 transition-all cursor-pointer disabled:opacity-50"
                 >
-                  {p}
+                  <Zap size={16} />
+                  {generating ? 'Generating...' : 'Generate 5 Posts'}
                 </button>
+              </div>
+            </div>
+
+            {/* Generated Posts */}
+            {generating && (
+              <div className="text-center py-12">
+                <p className="text-white/30 text-sm font-inter">
+                  🧠 AI is writing posts in your voice...
+                </p>
+              </div>
+            )}
+
+            {!generating && generatedPosts.length > 0 && (
+              <div className="liquid-glass rounded-3xl p-6 md:p-8">
+                <div className="flex items-center gap-3 mb-6">
+                  <h2 className="text-white text-lg font-medium font-inter">
+                    Generated Posts
+                  </h2>
+                  <span className="text-white/40 text-xs font-inter">
+                    {generatedPosts.length} posts ready
+                  </span>
+                </div>
+
+                <div className="space-y-4">
+                  {generatedPosts.map((post, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.4, delay: i * 0.1 }}
+                      className="liquid-glass rounded-2xl p-6"
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <span className={`liquid-glass rounded-full px-3 py-1 text-white/60 text-xs font-inter`}>
+                          {post.platform}
+                        </span>
+                        <span className="text-white/30 text-xs font-inter">
+                          Day {i + 1}
+                        </span>
+                      </div>
+
+                      <p className="text-white/70 text-sm leading-relaxed font-inter mb-2">
+                        {post.text}
+                      </p>
+
+                      <p className="text-white/30 text-xs font-inter mb-4">
+                        {post.hashtags}
+                      </p>
+
+                      <div className="flex gap-2 flex-wrap">
+                        <button
+                          onClick={() => copyPost(post.text + '\n\n' + post.hashtags)}
+                          className="liquid-glass rounded-full px-4 py-1.5 text-xs text-white/50 font-inter hover:bg-white/5 transition-all cursor-pointer flex items-center gap-1"
+                        >
+                          <Copy size={12} />
+                          Copy
+                        </button>
+                        <button
+                          onClick={() => savePost(post, i)}
+                          disabled={savingIndex === i}
+                          className="liquid-glass rounded-full px-4 py-1.5 text-xs text-white/60 font-inter hover:bg-white/5 transition-all cursor-pointer flex items-center gap-1"
+                        >
+                          <Calendar size={12} />
+                          {savingIndex === i ? 'Saving...' : 'Save & Schedule'}
+                        </button>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {!generating && generatedPosts.length === 0 && (
+              <div className="text-center py-16">
+                <Zap size={48} className="text-white/10 mx-auto mb-4" />
+                <p className="text-white/30 text-sm font-inter mb-2">
+                  Enter your niche and click Generate.
+                </p>
+                <p className="text-white/20 text-xs font-inter">
+                  AI will write 5 ready-to-post pieces of content for you.
+                </p>
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {/* SAVED TAB */}
+        {activeTab === 'saved' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="liquid-glass rounded-3xl p-6 md:p-8"
+          >
+            <h2 className="text-white text-lg font-medium mb-6 font-inter">
+              Saved Posts
+            </h2>
+
+            {loadingSaved ? (
+              <p className="text-white/30 text-sm font-inter">Loading...</p>
+            ) : savedPosts.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-white/30 text-sm font-inter mb-4">
+                  No saved posts yet.
+                </p>
+                <button
+                  onClick={() => setActiveTab('generate')}
+                  className="liquid-glass rounded-full px-6 py-3 text-white/60 text-sm font-inter hover:bg-white/5 transition-all"
+                >
+                  ✨ Generate your first post
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {savedPosts.map((post, i) => (
+                  <motion.div
+                    key={post.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: i * 0.05 }}
+                    className="liquid-glass rounded-2xl p-5 hover:bg-white/[0.02] transition-all"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <span className="liquid-glass rounded-full px-3 py-1 text-white/60 text-xs font-inter">
+                            {post.platform}
+                          </span>
+                          <span className="text-white/30 text-xs font-inter">
+                            Scheduled: {new Date(post.scheduled_at).toLocaleDateString()}
+                          </span>
+                          <span className="liquid-glass rounded-full px-2 py-0.5 text-green-400/60 text-xs font-inter">
+                            {post.status}
+                          </span>
+                        </div>
+                        <p className="text-white/70 text-sm leading-relaxed font-inter">
+                          {post.post_text}
+                        </p>
+                      </div>
+                      <div className="flex flex-col gap-2 flex-shrink-0">
+                        <button
+                          onClick={() => copyPost(post.post_text)}
+                          className="liquid-glass rounded-full p-2 hover:bg-white/5 transition-all text-white/30 hover:text-white/60"
+                        >
+                          <Copy size={13} />
+                        </button>
+                        <button
+                          onClick={() => deletePost(post.id)}
+                          className="liquid-glass rounded-full p-2 hover:bg-white/5 transition-all text-white/20 hover:text-red-400/70"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {/* CALENDAR TAB */}
+        {activeTab === 'calendar' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="liquid-glass rounded-3xl p-6 md:p-8"
+          >
+            <h2 className="text-white text-lg font-medium mb-6 font-inter">
+              Content Calendar — June 2026
+            </h2>
+
+            <div className="grid grid-cols-7 gap-1 md:gap-2 mb-2">
+              {days.map((d) => (
+                <div key={d} className="text-white/30 text-xs tracking-widest text-center font-inter py-2">
+                  {d}
+                </div>
               ))}
             </div>
-            <button className="liquid-glass rounded-full px-8 py-3 flex items-center gap-2 text-white text-sm font-medium font-inter hover:bg-white/5 transition-all cursor-pointer">
-              <Zap size={16} />
-              Generate 30 Days of Content
-            </button>
-          </div>
-        </motion.div>
 
-        {/* Content Ideas */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.2 }}
-          className="liquid-glass rounded-3xl p-6 md:p-8 mb-6"
-        >
-          <div className="flex items-center gap-3 mb-6">
-            <h2 className="text-white text-lg font-medium font-inter">Generated Content Ideas</h2>
-            <span className="text-white/40 text-xs font-inter">30 ideas ready to schedule</span>
-          </div>
-
-          <div className="space-y-3">
-            {contentIdeas.map((item) => (
-              <div
-                key={item.day}
-                className="liquid-glass rounded-2xl p-5 flex flex-col sm:flex-row items-start gap-4 hover:bg-white/[0.02] transition-all"
-              >
-                <div className="liquid-glass rounded-xl p-3 text-center flex-shrink-0 min-w-[60px]">
-                  <span className="text-white/30 text-xs font-inter block">Day</span>
-                  <span className="font-instrument text-2xl text-white">{item.day}</span>
-                </div>
-                <div className="flex-1">
-                  <span className="liquid-glass rounded-full px-3 py-1 text-white/40 text-xs font-inter inline-block mb-2">
-                    {item.platform}
-                  </span>
-                  <p className="text-white/70 text-sm leading-relaxed font-inter">{item.text}</p>
-                  <div className="flex gap-2 mt-3">
-                    <button className="liquid-glass rounded-full px-4 py-1.5 text-xs text-white/50 font-inter hover:bg-white/5 transition-all cursor-pointer">Edit</button>
-                    <button className="liquid-glass rounded-full px-4 py-1.5 text-xs text-white/60 font-inter hover:bg-white/5 transition-all cursor-pointer">Schedule</button>
-                    <button className="liquid-glass rounded-full px-4 py-1.5 text-xs text-white/60 font-inter hover:bg-white/5 transition-all cursor-pointer">Post Now</button>
+            <div className="grid grid-cols-7 gap-1 md:gap-2">
+              {calendarCells.map((day, i) => {
+                const dayPosts = day ? getPostsForDay(day) : []
+                return (
+                  <div
+                    key={i}
+                    className={`rounded-xl p-1 md:p-2 min-h-16 md:min-h-20 ${day ? 'liquid-glass' : ''}`}
+                  >
+                    {day && (
+                      <>
+                        <span className="text-white/30 text-xs font-inter block mb-1">{day}</span>
+                        {dayPosts.map((post, j) => (
+                          <div
+                            key={j}
+                            className={`liquid-glass rounded-lg px-1 md:px-2 py-1 text-white/50 text-xs truncate font-inter flex items-center gap-1 mb-1`}
+                          >
+                            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${platformColors[post.platform] || 'bg-white/30'}`} />
+                            <span className="truncate hidden sm:inline">
+                              {post.post_text.slice(0, 20)}...
+                            </span>
+                          </div>
+                        ))}
+                      </>
+                    )}
                   </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </motion.div>
+                )
+              })}
+            </div>
 
-        {/* Content Calendar */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.3 }}
-          className="liquid-glass rounded-3xl p-6 md:p-8"
-        >
-          <h2 className="text-white text-lg font-medium mb-6 font-inter">Content Calendar — June 2026</h2>
-
-          {/* Day headers */}
-          <div className="grid grid-cols-7 gap-1 md:gap-2 mb-2">
-            {days.map((d) => (
-              <div key={d} className="text-white/30 text-xs tracking-widest text-center font-inter py-2">
-                {d}
+            {savedPosts.length === 0 && (
+              <div className="text-center mt-8">
+                <p className="text-white/30 text-sm font-inter">
+                  No scheduled posts yet. Generate and save posts to see them here.
+                </p>
               </div>
-            ))}
-          </div>
-
-          {/* Calendar grid */}
-          <div className="grid grid-cols-7 gap-1 md:gap-2">
-            {calendarCells.map((day, i) => (
-              <div
-                key={i}
-                className={`rounded-xl p-1 md:p-2 min-h-16 md:min-h-20 ${day ? 'liquid-glass' : ''}`}
-              >
-                {day && (
-                  <>
-                    <span className="text-white/30 text-xs font-inter block mb-1">{day}</span>
-                    {postDays[day] && postDays[day].map((post, j) => (
-                      <div key={j} className="liquid-glass rounded-lg px-1 md:px-2 py-1 text-white/50 text-xs truncate font-inter flex items-center gap-1">
-                        <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${platformColors[post.platform] || 'bg-white/30'}`} />
-                        <span className="truncate hidden sm:inline">{post.title}</span>
-                      </div>
-                    ))}
-                  </>
-                )}
-              </div>
-            ))}
-          </div>
-        </motion.div>
+            )}
+          </motion.div>
+        )}
       </main>
     </motion.div>
   )
