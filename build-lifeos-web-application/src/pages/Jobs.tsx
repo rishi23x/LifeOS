@@ -139,11 +139,46 @@ export default function Jobs() {
 
   // AI Job Search
   const searchJobs = async () => {
-    if (!searchQuery) return
-    setSearching(true)
-    setHasSearched(true)
+  if (!searchQuery) return
+  setSearching(true)
+  setHasSearched(true)
 
-    const prompt = `You are a job listing generator. Generate exactly 5 realistic job listings for the query: "${searchQuery}" ${searchLocation ? `in ${searchLocation}` : ''}.
+  const appId = import.meta.env.VITE_ADZUNA_APP_ID
+  const appKey = import.meta.env.VITE_ADZUNA_APP_KEY
+  const country = 'in'
+
+  const url = `https://api.adzuna.com/v1/api/jobs/${country}/search/1?app_id=${appId}&app_key=${appKey}&results_per_page=10&what=${encodeURIComponent(searchQuery)}&where=${encodeURIComponent(searchLocation)}&content-type=application/json`
+
+  try {
+    const response = await fetch(url)
+    const data = await response.json()
+
+    if (data.results && data.results.length > 0) {
+      const formattedJobs = data.results.map((job: any) => ({
+        company: job.company.display_name,
+        role: job.title.replace(/<\/?[^>]+(>|$)/g, ''),
+        match: `${Math.floor(Math.random() * 20) + 80}%`,
+        location: job.location.display_name,
+        salary: job.salary_min
+          ? `₹${job.salary_min.toLocaleString()}+`
+          : 'Salary not listed',
+        type: job.contract_time === 'full_time' ? 'Full-time' : 'Contract',
+        desc: job.description
+          .replace(/<\/?[^>]+(>|$)/g, '')
+          .slice(0, 150) + '...',
+        url: job.redirect_url,
+      }))
+      setAiJobs(formattedJobs)
+    } else {
+      setAiJobs([])
+    }
+  } catch (error) {
+    console.error('Adzuna Error:', error)
+    setAiJobs([])
+  }
+
+  setSearching(false)
+}
 
 Return ONLY a valid JSON array with no extra text. Each object must have these exact keys:
 - company (string - real company name)
