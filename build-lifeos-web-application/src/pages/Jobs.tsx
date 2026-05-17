@@ -28,46 +28,31 @@ export default function Jobs() {
   const { ref, isInView } = useAnimateInView()
   const { user } = useUser()
 
-  // Real jobs state
   const [applications, setApplications] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-
-  // Add job form
   const [showForm, setShowForm] = useState(false)
   const [newCompany, setNewCompany] = useState('')
   const [newRole, setNewRole] = useState('')
   const [newStatus, setNewStatus] = useState('Applied')
   const [newNextAction, setNewNextAction] = useState('')
   const [adding, setAdding] = useState(false)
-
-  // AI Job Search
   const [searchQuery, setSearchQuery] = useState('')
   const [searchLocation, setSearchLocation] = useState('')
   const [aiJobs, setAiJobs] = useState<any[]>([])
   const [searching, setSearching] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
-
-  // AI states
   const [aiMessages, setAiMessages] = useState([
-    {
-      role: 'ai',
-      text: 'Hi! I can help you prepare for interviews, write cover letters, or give career advice. What do you need?'
-    }
+    { role: 'ai', text: 'Hi! I can help you prepare for interviews, write cover letters, or give career advice. What do you need?' }
   ])
   const [aiInput, setAiInput] = useState('')
   const [aiLoading, setAiLoading] = useState(false)
-
-  // Cover letter state
   const [coverLetterJob, setCoverLetterJob] = useState('')
   const [coverLetterCompany, setCoverLetterCompany] = useState('')
   const [coverLetter, setCoverLetter] = useState('')
   const [generatingCover, setGeneratingCover] = useState(false)
-
-  // Resume analysis state
   const [resumeAnalysis, setResumeAnalysis] = useState('')
   const [analyzingResume, setAnalyzingResume] = useState(false)
 
-  // Fetch applications
   const fetchApplications = async () => {
     if (!user) return
     setLoading(true)
@@ -84,7 +69,6 @@ export default function Jobs() {
     fetchApplications()
   }, [user])
 
-  // Add application
   const addApplication = async () => {
     if (!user || !newCompany || !newRole) return
     setAdding(true)
@@ -107,19 +91,16 @@ export default function Jobs() {
     setAdding(false)
   }
 
-  // Delete application
   const deleteApplication = async (id: string) => {
     await supabase.from('jobs').delete().eq('id', id)
     fetchApplications()
   }
 
-  // Update status
   const updateStatus = async (id: string, status: string) => {
     await supabase.from('jobs').update({ status }).eq('id', id)
     fetchApplications()
   }
 
-  // Groq AI call
   const callGroq = async (prompt: string) => {
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -137,87 +118,55 @@ export default function Jobs() {
     return data.choices?.[0]?.message?.content || 'Sorry I could not process that.'
   }
 
-  // AI Job Search
   const searchJobs = async () => {
-  if (!searchQuery) return
-  setSearching(true)
-  setHasSearched(true)
+    if (!searchQuery) return
+    setSearching(true)
+    setHasSearched(true)
 
-  const appId = import.meta.env.VITE_ADZUNA_APP_ID
-  const appKey = import.meta.env.VITE_ADZUNA_APP_KEY
-  const country = 'in'
-
-  const url = `https://api.adzuna.com/v1/api/jobs/${country}/search/1?app_id=${appId}&app_key=${appKey}&results_per_page=10&what=${encodeURIComponent(searchQuery)}&where=${encodeURIComponent(searchLocation)}&content-type=application/json`
-
-  try {
-    const response = await fetch(url)
-    const data = await response.json()
-
-    if (data.results && data.results.length > 0) {
-      const formattedJobs = data.results.map((job: any) => ({
-        company: job.company.display_name,
-        role: job.title.replace(/<\/?[^>]+(>|$)/g, ''),
-        match: `${Math.floor(Math.random() * 20) + 80}%`,
-        location: job.location.display_name,
-        salary: job.salary_min
-          ? `₹${job.salary_min.toLocaleString()}+`
-          : 'Salary not listed',
-        type: job.contract_time === 'full_time' ? 'Full-time' : 'Contract',
-        desc: job.description
-          .replace(/<\/?[^>]+(>|$)/g, '')
-          .slice(0, 150) + '...',
-        url: job.redirect_url,
-      }))
-      setAiJobs(formattedJobs)
-    } else {
-      setAiJobs([])
-    }
-  } catch (error) {
-    console.error('Adzuna Error:', error)
-    setAiJobs([])
-  }
-
-  setSearching(false)
-}
-
-Return ONLY a valid JSON array with no extra text. Each object must have these exact keys:
-- company (string - real company name)
-- role (string - job title)
-- match (string - percentage like "92%")
-- location (string - city or Remote)
-- salary (string - range like "$120k-$160k")
-- type (string - Full-time or Part-time or Contract)
-- desc (string - 1 sentence job description)
-
-Return only the JSON array, nothing else.`
+    const appId = import.meta.env.VITE_ADZUNA_APP_ID
+    const appKey = import.meta.env.VITE_ADZUNA_APP_KEY
+    const country = 'in'
+    const url = `https://api.adzuna.com/v1/api/jobs/${country}/search/1?app_id=${appId}&app_key=${appKey}&results_per_page=10&what=${encodeURIComponent(searchQuery)}&where=${encodeURIComponent(searchLocation)}&content-type=application/json`
 
     try {
-      const reply = await callGroq(prompt)
-      const cleaned = reply.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-      const parsed = JSON.parse(cleaned)
-      setAiJobs(parsed)
-    } catch {
+      const response = await fetch(url)
+      const data = await response.json()
+      if (data.results && data.results.length > 0) {
+        const formattedJobs = data.results.map((job: any) => ({
+          company: job.company.display_name,
+          role: job.title.replace(/<\/?[^>]+(>|$)/g, ''),
+          match: `${Math.floor(Math.random() * 20) + 80}%`,
+          location: job.location.display_name,
+          salary: job.salary_min
+            ? `₹${job.salary_min.toLocaleString()}+`
+            : 'Salary not listed',
+          type: job.contract_time === 'full_time' ? 'Full-time' : 'Contract',
+          desc: job.description.replace(/<\/?[^>]+(>|$)/g, '').slice(0, 150) + '...',
+          url: job.redirect_url,
+        }))
+        setAiJobs(formattedJobs)
+      } else {
+        setAiJobs([])
+      }
+    } catch (error) {
+      console.error('Adzuna Error:', error)
       setAiJobs([])
     }
     setSearching(false)
   }
 
-  // AI Chat
   const sendAiMessage = async () => {
     if (!aiInput.trim()) return
     const userMessage = aiInput
     setAiInput('')
     setAiMessages(prev => [...prev, { role: 'user', text: userMessage }])
     setAiLoading(true)
-
     const appSummary = applications.length > 0
       ? applications.map(a => `${a.role} at ${a.company} (${a.status})`).join(', ')
       : 'No applications yet'
-
     const prompt = `You are a personal AI career coach and interview expert.
 The user has applied to: ${appSummary}.
 Answer in 2-4 sentences, be specific, actionable, and encouraging: ${userMessage}`
-
     try {
       const reply = await callGroq(prompt)
       setAiMessages(prev => [...prev, { role: 'ai', text: reply }])
@@ -227,13 +176,10 @@ Answer in 2-4 sentences, be specific, actionable, and encouraging: ${userMessage
     setAiLoading(false)
   }
 
-  // Generate Cover Letter
   const generateCoverLetter = async () => {
     if (!coverLetterJob || !coverLetterCompany) return
     setGeneratingCover(true)
-    const prompt = `Write a professional cover letter for a ${coverLetterJob} position at ${coverLetterCompany}.
-Keep it concise, confident, and under 200 words.
-Make it sound human and genuine, not robotic.`
+    const prompt = `Write a professional cover letter for a ${coverLetterJob} position at ${coverLetterCompany}. Keep it concise, confident, and under 200 words. Make it sound human and genuine, not robotic.`
     try {
       const letter = await callGroq(prompt)
       setCoverLetter(letter)
@@ -243,23 +189,18 @@ Make it sound human and genuine, not robotic.`
     setGeneratingCover(false)
   }
 
-  // Analyze Resume
   const analyzeResume = async () => {
     setAnalyzingResume(true)
     const appSummary = applications.length > 0
       ? applications.map(a => `${a.role} at ${a.company}`).join(', ')
       : 'No applications yet'
-
     const prompt = `You are a resume and career expert. Based on these job applications: ${appSummary}.
-
 Provide a brief resume analysis with:
-1. Top 5 skills the user likely has (based on roles applied to)
+1. Top 5 skills the user likely has
 2. Resume score out of 100
 3. 2-3 specific improvement suggestions
 4. Recommended job titles to target next
-
 Keep it concise and actionable. Format with bullet points.`
-
     try {
       const analysis = await callGroq(prompt)
       setResumeAnalysis(analysis)
@@ -268,9 +209,6 @@ Keep it concise and actionable. Format with bullet points.`
     }
     setAnalyzingResume(false)
   }
-
-  // Display jobs (AI generated or empty state)
-  const displayJobs = aiJobs.length > 0 ? aiJobs : []
 
   return (
     <motion.div
@@ -283,21 +221,15 @@ Keep it concise and actionable. Format with bullet points.`
       <Sidebar />
       <main className="ml-0 md:ml-64 p-4 md:p-8">
 
-        {/* Header */}
         <div className="flex justify-between items-start mb-8">
           <div>
-            <h1 className="font-instrument text-4xl text-white mb-2">
-              Job Application Bot
-            </h1>
+            <h1 className="font-instrument text-4xl text-white mb-2">Job Application Bot</h1>
             <p className="text-white/40 text-sm font-inter">
               {applications.length} applications tracked in your database.
             </p>
           </div>
           <button
-            onClick={() => {
-              setShowForm(!showForm)
-              setActiveTab(2)
-            }}
+            onClick={() => { setShowForm(!showForm); setActiveTab(2) }}
             className="liquid-glass rounded-full px-5 py-2.5 text-white text-sm font-inter flex items-center gap-2 hover:bg-white/5 transition-all"
           >
             <Plus size={16} />
@@ -305,16 +237,13 @@ Keep it concise and actionable. Format with bullet points.`
           </button>
         </div>
 
-        {/* Tabs */}
         <div className="liquid-glass rounded-full flex p-1 mb-8 w-fit overflow-x-auto">
           {tabs.map((tab, i) => (
             <button
               key={tab}
               onClick={() => setActiveTab(i)}
               className={`rounded-full px-6 py-2.5 text-sm font-inter transition-all cursor-pointer whitespace-nowrap ${
-                activeTab === i
-                  ? 'bg-white/10 text-white'
-                  : 'text-white/40 hover:text-white/60'
+                activeTab === i ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/60'
               }`}
             >
               {tab}
@@ -334,7 +263,7 @@ Keep it concise and actionable. Format with bullet points.`
               <div className="liquid-glass rounded-full flex-1 px-5 py-3 flex items-center gap-3">
                 <Search size={16} className="text-white/30" />
                 <input
-                  placeholder="Job title or keyword (e.g. Frontend Developer)..."
+                  placeholder="Job title or keyword..."
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && searchJobs()}
@@ -356,24 +285,19 @@ Keep it concise and actionable. Format with bullet points.`
                 className="liquid-glass rounded-full px-6 py-3 text-white text-sm font-inter hover:bg-white/5 transition-all cursor-pointer whitespace-nowrap flex items-center gap-2"
               >
                 <Zap size={14} />
-                {searching ? 'Searching...' : 'Search with AI'}
+                {searching ? 'Searching...' : 'Search Jobs'}
               </button>
             </div>
 
-            {/* Search Results */}
             {searching && (
               <div className="text-center py-12">
-                <p className="text-white/30 text-sm font-inter">
-                  🔍 AI is finding the best jobs for you...
-                </p>
+                <p className="text-white/30 text-sm font-inter">🔍 Finding real jobs for you...</p>
               </div>
             )}
 
-            {!searching && hasSearched && displayJobs.length === 0 && (
+            {!searching && hasSearched && aiJobs.length === 0 && (
               <div className="text-center py-12">
-                <p className="text-white/30 text-sm font-inter">
-                  No jobs found. Try a different search term.
-                </p>
+                <p className="text-white/30 text-sm font-inter">No jobs found. Try a different search term.</p>
               </div>
             )}
 
@@ -381,16 +305,16 @@ Keep it concise and actionable. Format with bullet points.`
               <div className="text-center py-16">
                 <Zap size={48} className="text-white/10 mx-auto mb-4" />
                 <p className="text-white/30 text-sm font-inter mb-2">
-                  Search for any job title and AI will find matching opportunities.
+                  Search for any job title to find real opportunities.
                 </p>
                 <p className="text-white/20 text-xs font-inter">
-                  Try: "Software Engineer", "CFO", "Product Manager", "Data Scientist"
+                  Try: "Software Engineer", "Product Manager", "Data Scientist"
                 </p>
               </div>
             )}
 
             <div className="space-y-4">
-              {displayJobs.map((job: any, i: number) => (
+              {aiJobs.map((job: any, i: number) => (
                 <motion.div
                   key={i}
                   initial={{ opacity: 0, y: 30 }}
@@ -401,12 +325,8 @@ Keep it concise and actionable. Format with bullet points.`
                 >
                   <div className="flex justify-between items-start flex-wrap gap-2">
                     <div>
-                      <p className="text-white/40 text-xs uppercase tracking-widest mb-1 font-inter">
-                        {job.company}
-                      </p>
-                      <h3 className="text-white text-xl font-instrument mb-2">
-                        {job.role}
-                      </h3>
+                      <p className="text-white/40 text-xs uppercase tracking-widest mb-1 font-inter">{job.company}</p>
+                      <h3 className="text-white text-xl font-instrument mb-2">{job.role}</h3>
                       <div className="flex gap-4 flex-wrap">
                         <span className="flex items-center gap-1 text-white/40 text-xs font-inter">
                           <MapPin size={12} /> {job.location}
@@ -423,31 +343,30 @@ Keep it concise and actionable. Format with bullet points.`
                       {job.match} match
                     </span>
                   </div>
-                  <p className="text-white/50 text-sm leading-relaxed mt-3 mb-4 font-inter">
-                    {job.desc}
-                  </p>
-                  <div className="flex gap-3">
+                  <p className="text-white/50 text-sm leading-relaxed mt-3 mb-4 font-inter">{job.desc}</p>
+                  <div className="flex gap-3 flex-wrap">
                     <button
-                      onClick={() => {
-                        setCoverLetterJob(job.role)
-                        setCoverLetterCompany(job.company)
-                        setActiveTab(1)
-                      }}
+                      onClick={() => { setCoverLetterJob(job.role); setCoverLetterCompany(job.company); setActiveTab(1) }}
                       className="liquid-glass rounded-full px-5 py-2.5 text-white text-sm font-inter hover:bg-white/5 transition-all cursor-pointer"
                     >
                       Generate Cover Letter
                     </button>
                     <button
-                      onClick={() => {
-                        setNewCompany(job.company)
-                        setNewRole(job.role)
-                        setShowForm(true)
-                        setActiveTab(2)
-                      }}
+                      onClick={() => { setNewCompany(job.company); setNewRole(job.role); setShowForm(true); setActiveTab(2) }}
                       className="text-white/40 text-sm font-inter hover:text-white/60 transition-colors cursor-pointer px-3"
                     >
                       Track Application
                     </button>
+                    {job.url && (
+                      <a
+                        href={job.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="liquid-glass rounded-full px-5 py-2.5 text-white/60 text-sm font-inter hover:bg-white/5 transition-all cursor-pointer"
+                      >
+                        Apply Now ↗
+                      </a>
+                    )}
                   </div>
                 </motion.div>
               ))}
@@ -463,11 +382,8 @@ Keep it concise and actionable. Format with bullet points.`
             transition={{ duration: 0.4 }}
             className="space-y-6"
           >
-            {/* Cover Letter Generator */}
             <div className="liquid-glass rounded-3xl p-6 md:p-8">
-              <h2 className="text-white text-lg font-medium mb-6 font-inter">
-                AI Cover Letter Generator
-              </h2>
+              <h2 className="text-white text-lg font-medium mb-6 font-inter">AI Cover Letter Generator</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
                 <input
                   type="text"
@@ -491,16 +407,13 @@ Keep it concise and actionable. Format with bullet points.`
               >
                 {generatingCover ? 'Generating...' : '✨ Generate Cover Letter'}
               </button>
-
               {coverLetter && (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="liquid-glass rounded-2xl p-6"
                 >
-                  <p className="text-white/70 text-sm leading-relaxed font-inter whitespace-pre-wrap">
-                    {coverLetter}
-                  </p>
+                  <p className="text-white/70 text-sm leading-relaxed font-inter whitespace-pre-wrap">{coverLetter}</p>
                   <button
                     onClick={() => navigator.clipboard.writeText(coverLetter)}
                     className="liquid-glass rounded-full px-5 py-2 text-white/50 text-xs font-inter mt-4 hover:bg-white/5 transition-all"
@@ -511,12 +424,9 @@ Keep it concise and actionable. Format with bullet points.`
               )}
             </div>
 
-            {/* Resume Analysis - AI Powered */}
             <div className="liquid-glass rounded-3xl p-6 md:p-8">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-white text-lg font-medium font-inter">
-                  Resume Overview
-                </h2>
+                <h2 className="text-white text-lg font-medium font-inter">Resume Overview</h2>
                 <button
                   onClick={analyzeResume}
                   disabled={analyzingResume}
@@ -530,41 +440,28 @@ Keep it concise and actionable. Format with bullet points.`
               {!resumeAnalysis && !analyzingResume && (
                 <div className="space-y-4">
                   <div>
-                    <p className="text-white/40 text-xs tracking-widest uppercase mb-2 font-inter">
-                      APPLICATIONS TRACKED
-                    </p>
-                    <p className="font-instrument text-4xl text-white font-light">
-                      {applications.length}
-                    </p>
+                    <p className="text-white/40 text-xs tracking-widest uppercase mb-2 font-inter">APPLICATIONS TRACKED</p>
+                    <p className="font-instrument text-4xl text-white font-light">{applications.length}</p>
                     <p className="text-white/30 text-xs font-inter mt-1">
                       {applications.length > 0
                         ? `Companies: ${[...new Set(applications.map(a => a.company))].join(', ')}`
-                        : 'Add applications to get AI resume analysis'
-                      }
+                        : 'Add applications to get AI resume analysis'}
                     </p>
                   </div>
                   <div>
-                    <p className="text-white/40 text-xs tracking-widest uppercase mb-2 font-inter">
-                      ROLES APPLIED FOR
-                    </p>
+                    <p className="text-white/40 text-xs tracking-widest uppercase mb-2 font-inter">ROLES APPLIED FOR</p>
                     <div className="flex flex-wrap gap-2">
                       {applications.length > 0 ? (
                         [...new Set(applications.map(a => a.role))].map(role => (
-                          <span key={role} className="liquid-glass rounded-full px-3 py-1 text-white/50 text-xs font-inter">
-                            {role}
-                          </span>
+                          <span key={role} className="liquid-glass rounded-full px-3 py-1 text-white/50 text-xs font-inter">{role}</span>
                         ))
                       ) : (
-                        <span className="text-white/30 text-sm font-inter">
-                          No roles tracked yet
-                        </span>
+                        <span className="text-white/30 text-sm font-inter">No roles tracked yet</span>
                       )}
                     </div>
                   </div>
                   <div>
-                    <p className="text-white/40 text-xs tracking-widest uppercase mb-2 font-inter">
-                      STATUS BREAKDOWN
-                    </p>
+                    <p className="text-white/40 text-xs tracking-widest uppercase mb-2 font-inter">STATUS BREAKDOWN</p>
                     <div className="flex flex-wrap gap-3">
                       {statusOptions.map(status => {
                         const count = applications.filter(a => a.status === status).length
@@ -582,9 +479,7 @@ Keep it concise and actionable. Format with bullet points.`
 
               {analyzingResume && (
                 <div className="text-center py-8">
-                  <p className="text-white/30 text-sm font-inter">
-                    🧠 AI is analyzing your career profile...
-                  </p>
+                  <p className="text-white/30 text-sm font-inter">🧠 AI is analyzing your career profile...</p>
                 </div>
               )}
 
@@ -594,9 +489,7 @@ Keep it concise and actionable. Format with bullet points.`
                   animate={{ opacity: 1, y: 0 }}
                   className="liquid-glass rounded-2xl p-6"
                 >
-                  <p className="text-white/70 text-sm leading-relaxed font-inter whitespace-pre-wrap">
-                    {resumeAnalysis}
-                  </p>
+                  <p className="text-white/70 text-sm leading-relaxed font-inter whitespace-pre-wrap">{resumeAnalysis}</p>
                   <button
                     onClick={() => setResumeAnalysis('')}
                     className="liquid-glass rounded-full px-5 py-2 text-white/40 text-xs font-inter mt-4 hover:bg-white/5 transition-all"
@@ -617,16 +510,13 @@ Keep it concise and actionable. Format with bullet points.`
             transition={{ duration: 0.4 }}
             className="space-y-6"
           >
-            {/* Add Application Form */}
             {showForm && (
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="liquid-glass rounded-3xl p-6"
               >
-                <h3 className="text-white text-base font-medium mb-4 font-inter">
-                  Track New Application
-                </h3>
+                <h3 className="text-white text-base font-medium mb-4 font-inter">Track New Application</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                   <input
                     type="text"
@@ -669,15 +559,12 @@ Keep it concise and actionable. Format with bullet points.`
               </motion.div>
             )}
 
-            {/* Applications Table */}
             <div className="liquid-glass rounded-3xl p-6 md:p-8">
               <div className="hidden md:grid grid-cols-5 gap-4 px-4 pb-4"
                 style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}
               >
                 {['Company', 'Role', 'Status', 'Applied', 'Action'].map(h => (
-                  <span key={h} className="text-white/30 text-xs tracking-widest uppercase font-inter">
-                    {h}
-                  </span>
+                  <span key={h} className="text-white/30 text-xs tracking-widest uppercase font-inter">{h}</span>
                 ))}
               </div>
 
@@ -685,9 +572,7 @@ Keep it concise and actionable. Format with bullet points.`
                 <p className="text-white/30 text-sm font-inter px-4 py-8">Loading...</p>
               ) : applications.length === 0 ? (
                 <div className="text-center py-12">
-                  <p className="text-white/30 text-sm font-inter mb-4">
-                    No applications tracked yet.
-                  </p>
+                  <p className="text-white/30 text-sm font-inter mb-4">No applications tracked yet.</p>
                   <button
                     onClick={() => setShowForm(true)}
                     className="liquid-glass rounded-full px-6 py-3 text-white/60 text-sm font-inter hover:bg-white/5 transition-all"
@@ -700,18 +585,10 @@ Keep it concise and actionable. Format with bullet points.`
                   <div
                     key={app.id}
                     className="grid grid-cols-1 md:grid-cols-5 gap-2 md:gap-4 px-4 py-5 items-center"
-                    style={{
-                      borderBottom: i < applications.length - 1
-                        ? '1px solid rgba(255,255,255,0.05)'
-                        : 'none'
-                    }}
+                    style={{ borderBottom: i < applications.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}
                   >
-                    <span className="text-white/80 text-sm font-inter font-medium">
-                      {app.company}
-                    </span>
-                    <span className="text-white/60 text-sm font-inter">
-                      {app.role}
-                    </span>
+                    <span className="text-white/80 text-sm font-inter font-medium">{app.company}</span>
+                    <span className="text-white/60 text-sm font-inter">{app.role}</span>
                     <span>
                       <select
                         value={app.status}
@@ -727,9 +604,7 @@ Keep it concise and actionable. Format with bullet points.`
                       {new Date(app.applied_at).toLocaleDateString()}
                     </span>
                     <div className="flex items-center gap-2">
-                      <span className="text-white/50 text-sm font-inter">
-                        {app.next_action || '—'}
-                      </span>
+                      <span className="text-white/50 text-sm font-inter">{app.next_action || '—'}</span>
                       <button
                         onClick={() => deleteApplication(app.id)}
                         className="liquid-glass rounded-full p-1.5 hover:bg-white/5 transition-all text-white/20 hover:text-red-400/70 ml-auto"
@@ -753,20 +628,12 @@ Keep it concise and actionable. Format with bullet points.`
             className="space-y-6"
           >
             <div className="liquid-glass rounded-3xl p-6 md:p-8">
-              <h2 className="text-white text-lg font-medium mb-6 font-inter">
-                AI Interview Coach
-              </h2>
-
+              <h2 className="text-white text-lg font-medium mb-6 font-inter">AI Interview Coach</h2>
               <div className="min-h-48 mb-4 space-y-3 max-h-80 overflow-y-auto">
                 {aiMessages.map((msg, i) => (
-                  <div
-                    key={i}
-                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
+                  <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                     <div className={`liquid-glass rounded-2xl p-4 max-w-lg ${msg.role === 'user' ? 'bg-white/5' : ''}`}>
-                      <p className="text-white/70 text-sm leading-relaxed font-inter">
-                        {msg.text}
-                      </p>
+                      <p className="text-white/70 text-sm leading-relaxed font-inter">{msg.text}</p>
                     </div>
                   </div>
                 ))}
@@ -778,7 +645,6 @@ Keep it concise and actionable. Format with bullet points.`
                   </div>
                 )}
               </div>
-
               <div className="flex gap-3">
                 <div className="liquid-glass rounded-full flex-1 px-5 py-3">
                   <input
@@ -801,9 +667,7 @@ Keep it concise and actionable. Format with bullet points.`
             </div>
 
             <div className="liquid-glass rounded-3xl p-6 md:p-8">
-              <h2 className="text-white text-lg font-medium mb-6 font-inter">
-                Common Interview Questions
-              </h2>
+              <h2 className="text-white text-lg font-medium mb-6 font-inter">Common Interview Questions</h2>
               <div className="space-y-3">
                 {[
                   { q: 'Tell me about yourself', hint: 'Focus on your recent experience and what drives you.' },
@@ -815,16 +679,10 @@ Keep it concise and actionable. Format with bullet points.`
                   <div
                     key={i}
                     className="liquid-glass rounded-2xl p-5 cursor-pointer hover:bg-white/[0.02] transition-all"
-                    onClick={() => {
-                      setAiInput(`Help me answer: "${item.q}"`)
-                    }}
+                    onClick={() => { setAiInput(`Help me answer: "${item.q}"`); }}
                   >
-                    <p className="text-white/80 text-sm font-medium font-inter mb-1">
-                      {item.q}
-                    </p>
-                    <p className="text-white/40 text-xs font-inter">
-                      💡 {item.hint}
-                    </p>
+                    <p className="text-white/80 text-sm font-medium font-inter mb-1">{item.q}</p>
+                    <p className="text-white/40 text-xs font-inter">💡 {item.hint}</p>
                   </div>
                 ))}
               </div>
