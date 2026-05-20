@@ -1,6 +1,6 @@
 import { motion, useInView } from 'framer-motion'
 import { useRef, useState, useEffect } from 'react'
-import { ArrowRight, CreditCard, Plus, Trash2, Zap } from 'lucide-react'
+import { ArrowRight, Plus, Trash2, Zap } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from 'recharts'
 import Sidebar from '../components/Sidebar'
 import { supabase } from '../lib/supabase'
@@ -22,6 +22,188 @@ interface DetectedSubscription {
   occurrences: number
 }
 
+// Brand logo map using Clearbit
+const brandLogos: Record<string, string> = {
+  'netflix': 'https://logo.clearbit.com/netflix.com',
+  'spotify': 'https://logo.clearbit.com/spotify.com',
+  'amazon': 'https://logo.clearbit.com/amazon.com',
+  'prime': 'https://logo.clearbit.com/amazon.com',
+  'disney': 'https://logo.clearbit.com/disneyplus.com',
+  'hulu': 'https://logo.clearbit.com/hulu.com',
+  'hbo': 'https://logo.clearbit.com/hbomax.com',
+  'youtube': 'https://logo.clearbit.com/youtube.com',
+  'apple': 'https://logo.clearbit.com/apple.com',
+  'adobe': 'https://logo.clearbit.com/adobe.com',
+  'notion': 'https://logo.clearbit.com/notion.so',
+  'figma': 'https://logo.clearbit.com/figma.com',
+  'canva': 'https://logo.clearbit.com/canva.com',
+  'slack': 'https://logo.clearbit.com/slack.com',
+  'zoom': 'https://logo.clearbit.com/zoom.us',
+  'microsoft': 'https://logo.clearbit.com/microsoft.com',
+  'google': 'https://logo.clearbit.com/google.com',
+  'github': 'https://logo.clearbit.com/github.com',
+  'dropbox': 'https://logo.clearbit.com/dropbox.com',
+  'chatgpt': 'https://logo.clearbit.com/openai.com',
+  'openai': 'https://logo.clearbit.com/openai.com',
+  'grammarly': 'https://logo.clearbit.com/grammarly.com',
+  'linkedin': 'https://logo.clearbit.com/linkedin.com',
+  'twitter': 'https://logo.clearbit.com/x.com',
+  'instagram': 'https://logo.clearbit.com/instagram.com',
+  'tinder': 'https://logo.clearbit.com/tinder.com',
+  'bumble': 'https://logo.clearbit.com/bumble.com',
+  'uber': 'https://logo.clearbit.com/uber.com',
+  'swiggy': 'https://logo.clearbit.com/swiggy.com',
+  'zomato': 'https://logo.clearbit.com/zomato.com',
+  'flipkart': 'https://logo.clearbit.com/flipkart.com',
+  'myntra': 'https://logo.clearbit.com/myntra.com',
+  'hotstar': 'https://logo.clearbit.com/hotstar.com',
+  'jio': 'https://logo.clearbit.com/jio.com',
+  'airtel': 'https://logo.clearbit.com/airtel.in',
+  'stripe': 'https://logo.clearbit.com/stripe.com',
+  'paypal': 'https://logo.clearbit.com/paypal.com',
+  'coursera': 'https://logo.clearbit.com/coursera.org',
+  'udemy': 'https://logo.clearbit.com/udemy.com',
+  'medium': 'https://logo.clearbit.com/medium.com',
+  'xbox': 'https://logo.clearbit.com/xbox.com',
+  'playstation': 'https://logo.clearbit.com/playstation.com',
+  'steam': 'https://logo.clearbit.com/steampowered.com',
+  'crunchyroll': 'https://logo.clearbit.com/crunchyroll.com',
+  'sonyliv': 'https://logo.clearbit.com/sonyliv.com',
+  'zee5': 'https://logo.clearbit.com/zee5.com',
+  'ola': 'https://logo.clearbit.com/olacabs.com',
+  'icloud': 'https://logo.clearbit.com/icloud.com',
+  'aws': 'https://logo.clearbit.com/aws.amazon.com',
+  'vercel': 'https://logo.clearbit.com/vercel.com',
+  'doordash': 'https://logo.clearbit.com/doordash.com',
+  'lyft': 'https://logo.clearbit.com/lyft.com',
+  'peloton': 'https://logo.clearbit.com/peloton.com',
+  'headspace': 'https://logo.clearbit.com/headspace.com',
+  'calm': 'https://logo.clearbit.com/calm.com',
+  'substack': 'https://logo.clearbit.com/substack.com',
+  'skillshare': 'https://logo.clearbit.com/skillshare.com',
+  'duolingo': 'https://logo.clearbit.com/duolingo.com',
+  'naukri': 'https://logo.clearbit.com/naukri.com',
+  'zerodha': 'https://logo.clearbit.com/zerodha.com',
+  'groww': 'https://logo.clearbit.com/groww.in',
+}
+
+// Emoji fallback map
+const emojiMap: Record<string, string> = {
+  'gym': '🏋️',
+  'fitness': '💪',
+  'yoga': '🧘',
+  'rent': '🏠',
+  'electric': '⚡',
+  'electricity': '⚡',
+  'water': '💧',
+  'internet': '📶',
+  'wifi': '📶',
+  'broadband': '📶',
+  'phone': '📱',
+  'mobile': '📱',
+  'insurance': '🛡️',
+  'loan': '💳',
+  'emi': '💳',
+  'food': '🍔',
+  'grocery': '🛒',
+  'transport': '🚗',
+  'petrol': '⛽',
+  'gas': '⛽',
+  'education': '🎓',
+  'tuition': '📚',
+  'school': '🏫',
+  'college': '🎓',
+  'doctor': '🏥',
+  'hospital': '🏥',
+  'health': '❤️',
+  'medicine': '💊',
+  'pharmacy': '💊',
+  'shopping': '🛍️',
+  'clothing': '👕',
+  'salon': '💇',
+  'spa': '💆',
+  'laundry': '👔',
+  'travel': '✈️',
+  'hotel': '🏨',
+  'parking': '🅿️',
+  'subscription': '⭐',
+  'membership': '🎫',
+  'donation': '🤝',
+  'gift': '🎁',
+  'newspaper': '📰',
+  'magazine': '📖',
+  'news': '📰',
+  'book': '📚',
+  'library': '📚',
+  'music': '🎵',
+  'gaming': '🎮',
+  'game': '🎮',
+  'sport': '⚽',
+  'cricket': '🏏',
+  'football': '⚽',
+  'swimming': '🏊',
+  'dance': '💃',
+  'coding': '💻',
+  'hosting': '🖥️',
+  'domain': '🌐',
+  'vpn': '🔒',
+  'security': '🔐',
+  'cloud': '☁️',
+  'storage': '💾',
+  'backup': '💾',
+  'antivirus': '🛡️',
+  'software': '💿',
+  'app': '📱',
+  'tool': '🔧',
+  'investment': '📈',
+  'mutual fund': '📊',
+  'sip': '📊',
+  'crypto': '₿',
+  'bitcoin': '₿',
+  'nft': '🖼️',
+  'trading': '📈',
+}
+
+function getSubIcon(name: string): { type: 'logo'; url: string } | { type: 'emoji'; icon: string } {
+  const lower = name.toLowerCase()
+
+  for (const brand in brandLogos) {
+    if (lower.includes(brand)) {
+      return { type: 'logo', url: brandLogos[brand] }
+    }
+  }
+
+  for (const key in emojiMap) {
+    if (lower.includes(key)) {
+      return { type: 'emoji', icon: emojiMap[key] }
+    }
+  }
+
+  return { type: 'emoji', icon: '💳' }
+}
+
+function SubIcon({ name }: { name: string }) {
+  const [imgError, setImgError] = useState(false)
+  const icon = getSubIcon(name)
+
+  if (icon.type === 'logo' && !imgError) {
+    return (
+      <img
+        src={icon.url}
+        alt={name}
+        className="w-6 h-6 rounded-md object-contain"
+        onError={function() { setImgError(true) }}
+      />
+    )
+  }
+
+  if (icon.type === 'logo' && imgError) {
+    return <span className="text-lg">💳</span>
+  }
+
+  return <span className="text-lg">{icon.icon}</span>
+}
+
 export default function Financial() {
   const { ref: statsRef, isInView: statsInView } = useAnimateInView()
   const { user } = useUser()
@@ -34,7 +216,6 @@ export default function Financial() {
   const [newCategory, setNewCategory] = useState('Food')
   const [adding, setAdding] = useState(false)
 
-  // Subscription detector state
   const [detectedSubs, setDetectedSubs] = useState<DetectedSubscription[]>([])
   const [analyzingSubs, setAnalyzingSubs] = useState(false)
   const [subsAnalyzed, setSubsAnalyzed] = useState(false)
@@ -48,7 +229,10 @@ export default function Financial() {
   const [aiInput, setAiInput] = useState('')
   const [aiLoading, setAiLoading] = useState(false)
 
-  const categories = ['Food', 'Transport', 'Entertainment', 'Shopping', 'Bills', 'Health', 'Subscription', 'Other']
+  const categories = [
+    'Food', 'Transport', 'Entertainment',
+    'Shopping', 'Bills', 'Health', 'Subscription', 'Other'
+  ]
 
   const fetchTransactions = async function() {
     if (!user) return
@@ -63,15 +247,14 @@ export default function Financial() {
   }
 
   useEffect(function() {
-  fetchTransactions()
-}, [user])
+    fetchTransactions()
+  }, [user])
 
-// Auto analyze subscriptions after transactions load
-useEffect(function() {
-  if (!loading && transactions.length > 0 && !subsAnalyzed) {
-    detectSubscriptions()
-  }
-}, [loading, transactions])
+  useEffect(function() {
+    if (!loading && transactions.length > 0 && !subsAnalyzed) {
+      detectSubscriptions()
+    }
+  }, [loading, transactions])
 
   const addTransaction = async function() {
     if (!user || !newName || !newAmount) return
@@ -111,14 +294,14 @@ useEffect(function() {
     }
   }).filter(function(c) { return c.amount > 0 })
 
-  const chartData = categoryTotals.length > 0 ? categoryTotals : [{ name: 'No data yet', amount: 0 }]
+  const chartData = categoryTotals.length > 0
+    ? categoryTotals
+    : [{ name: 'No data yet', amount: 0 }]
 
-  // Detect subscriptions from real transactions
   const detectSubscriptions = async function() {
     if (transactions.length === 0) return
     setAnalyzingSubs(true)
 
-    // Group transactions by name to find recurring ones
     const nameGroups: Record<string, any[]> = {}
     transactions.forEach(function(t) {
       const key = t.name.toLowerCase().trim()
@@ -126,7 +309,6 @@ useEffect(function() {
       nameGroups[key].push(t)
     })
 
-    // Find recurring transactions (appear more than once OR marked as subscription)
     const recurring = Object.entries(nameGroups).filter(function([_, txns]) {
       return txns.length >= 1
     })
@@ -138,7 +320,6 @@ useEffect(function() {
       return
     }
 
-    // Use AI to analyze which ones are subscriptions and their status
     const transactionList = recurring.map(function([name, txns]) {
       const dates = txns.map(function(t) { return t.date }).join(', ')
       const amount = txns[txns.length - 1].amount
@@ -183,15 +364,19 @@ Return ONLY the JSON array. No other text.`
 
       const data = await response.json()
       const content = data.choices[0].message.content.trim()
-      const cleaned = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+      const cleaned = content
+        .replace(/```json\n?/g, '')
+        .replace(/```\n?/g, '')
+        .trim()
       const parsed = JSON.parse(cleaned)
 
       const subs: DetectedSubscription[] = parsed.map(function(item: any) {
         const txns = nameGroups[item.name.toLowerCase()] || []
         const lastTxn = txns[txns.length - 1]
         const lastDate = lastTxn ? new Date(lastTxn.date) : new Date()
-        const daysDiff = Math.floor((new Date().getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24))
-
+        const daysDiff = Math.floor(
+          (new Date().getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24)
+        )
         return {
           name: item.name,
           amount: item.amount,
@@ -205,23 +390,25 @@ Return ONLY the JSON array. No other text.`
 
       setDetectedSubs(subs)
     } catch {
-      // Fallback: manually detect from transactions
-      const fallbackSubs: DetectedSubscription[] = Object.entries(nameGroups).map(function([name, txns]) {
-        const lastTxn = txns[txns.length - 1]
-        const lastDate = new Date(lastTxn.date)
-        const daysDiff = Math.floor((new Date().getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24))
-        const status = daysDiff > 60 ? 'urgent' : daysDiff > 30 ? 'unused' : 'active'
-
-        return {
-          name: lastTxn.name,
-          amount: Number(lastTxn.amount),
-          frequency: txns.length > 1 ? 'monthly' : 'one-time',
-          lastUsed: lastDate.toLocaleDateString(),
-          daysSinceUsed: daysDiff,
-          status,
-          occurrences: txns.length,
+      const fallbackSubs: DetectedSubscription[] = Object.entries(nameGroups).map(
+        function([_, txns]) {
+          const lastTxn = txns[txns.length - 1]
+          const lastDate = new Date(lastTxn.date)
+          const daysDiff = Math.floor(
+            (new Date().getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24)
+          )
+          const status = daysDiff > 60 ? 'urgent' : daysDiff > 30 ? 'unused' : 'active'
+          return {
+            name: lastTxn.name,
+            amount: Number(lastTxn.amount),
+            frequency: txns.length > 1 ? 'monthly' : 'one-time',
+            lastUsed: lastDate.toLocaleDateString(),
+            daysSinceUsed: daysDiff,
+            status,
+            occurrences: txns.length,
+          }
         }
-      })
+      )
       setDetectedSubs(fallbackSubs)
     }
 
@@ -268,7 +455,9 @@ Return ONLY the JSON array. No other text.`
     {
       label: 'Subscriptions',
       value: subsAnalyzed ? String(detectedSubs.length) : '—',
-      sub: subsAnalyzed ? (urgentCount + unusedCount) + ' flagged as unused' : 'Click Analyze to detect'
+      sub: subsAnalyzed
+        ? (urgentCount + unusedCount) + ' flagged as unused'
+        : 'Analyzing...'
     },
     {
       label: 'Top Category',
@@ -283,14 +472,20 @@ Return ONLY the JSON array. No other text.`
     if (!aiInput.trim()) return
     const userMessage = aiInput
     setAiInput('')
-    setAiMessages(function(prev) { return [...prev, { role: 'user', text: userMessage }] })
+    setAiMessages(function(prev) {
+      return [...prev, { role: 'user', text: userMessage }]
+    })
     setAiLoading(true)
 
     const transactionSummary = transactions.length > 0
-      ? transactions.map(function(t) { return t.name + ': $' + t.amount + ' (' + t.category + ')' }).join(', ')
+      ? transactions.map(function(t) {
+          return t.name + ': $' + t.amount + ' (' + t.category + ')'
+        }).join(', ')
       : 'No transactions yet'
 
-    const prompt = 'You are a personal AI financial advisor. The user has these transactions: ' + transactionSummary + '. Total spend: $' + totalSpend + '. Answer this question in 2-3 sentences max, be specific and helpful: ' + userMessage
+    const prompt = 'You are a personal AI financial advisor. The user has these transactions: ' +
+      transactionSummary + '. Total spend: $' + totalSpend +
+      '. Answer this question in 2-3 sentences max, be specific and helpful: ' + userMessage
 
     try {
       const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -307,9 +502,13 @@ Return ONLY the JSON array. No other text.`
       })
       const data = await response.json()
       const aiReply = data.choices[0].message.content || 'Sorry I could not process that.'
-      setAiMessages(function(prev) { return [...prev, { role: 'ai', text: aiReply }] })
+      setAiMessages(function(prev) {
+        return [...prev, { role: 'ai', text: aiReply }]
+      })
     } catch {
-      setAiMessages(function(prev) { return [...prev, { role: 'ai', text: 'Sorry, I could not connect to AI right now.' }] })
+      setAiMessages(function(prev) {
+        return [...prev, { role: 'ai', text: 'Sorry, I could not connect to AI right now.' }]
+      })
     }
     setAiLoading(false)
   }
@@ -325,6 +524,7 @@ Return ONLY the JSON array. No other text.`
       <Sidebar />
       <main className="ml-0 md:ml-64 p-4 md:p-8">
 
+        {/* Header */}
         <div className="flex justify-between items-start mb-10">
           <div>
             <h1 className="font-instrument text-4xl text-white mb-2">
@@ -337,13 +537,14 @@ Return ONLY the JSON array. No other text.`
           <button
             type="button"
             onClick={function() { setShowForm(!showForm) }}
-            className="liquid-glass rounded-full px-5 py-2.5 text-white text-sm font-inter flex items-center gap-2 hover:bg-white/5 transition-all"
+            className="liquid-glass bobble rounded-full px-5 py-2.5 text-white text-sm font-inter flex items-center gap-2 hover:bg-white/5 transition-all"
           >
             <Plus size={16} />
             Add Transaction
           </button>
         </div>
 
+        {/* Add Transaction Form */}
         {showForm && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
@@ -389,6 +590,7 @@ Return ONLY the JSON array. No other text.`
           </motion.div>
         )}
 
+        {/* Stats */}
         <div ref={statsRef} className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {stats.map(function(stat, i) {
             return (
@@ -397,8 +599,8 @@ Return ONLY the JSON array. No other text.`
                 initial={{ opacity: 0, y: 30 }}
                 animate={statsInView ? { opacity: 1, y: 0 } : {}}
                 transition={{ duration: 0.5, delay: i * 0.1 }}
-                whileHover={{ scale: 1.01 }}
-                className="liquid-glass rounded-2xl p-6 hover:bg-white/[0.02] transition-all"
+                whileHover={{ scale: 1.02, y: -4 }}
+                className="liquid-glass rounded-2xl p-6 transition-all cursor-default"
               >
                 <p className="text-white/40 text-xs tracking-widest uppercase mb-3 font-inter">
                   {stat.label}
@@ -412,7 +614,7 @@ Return ONLY the JSON array. No other text.`
           })}
         </div>
 
-        {/* Real Transaction List */}
+        {/* Transaction List */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -432,13 +634,18 @@ Return ONLY the JSON array. No other text.`
             <div className="divide-y divide-white/5">
               {transactions.map(function(t) {
                 return (
-                  <div key={t.id} className="flex items-center justify-between py-4">
+                  <div
+                    key={t.id}
+                    className="flex items-center justify-between py-4 hover:bg-white/[0.02] transition-all rounded-xl px-2"
+                  >
                     <div className="flex items-center gap-4">
-                      <div className="liquid-glass rounded-xl p-2.5">
-                        <CreditCard size={16} className="text-white/40" />
+                      <div className="liquid-glass rounded-xl p-2.5 flex items-center justify-center w-10 h-10">
+                        <SubIcon name={t.name} />
                       </div>
                       <div>
-                        <p className="text-white/80 text-sm font-inter font-medium">{t.name}</p>
+                        <p className="text-white/80 text-sm font-inter font-medium">
+                          {t.name}
+                        </p>
                         <p className="text-white/30 text-xs font-inter mt-0.5">
                           {t.category} · {t.date}
                         </p>
@@ -476,9 +683,21 @@ Return ONLY the JSON array. No other text.`
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} barSize={40}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                <XAxis dataKey="name" tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 12 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 12 }} axisLine={false} tickLine={false} />
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="rgba(255,255,255,0.05)"
+                />
+                <XAxis
+                  dataKey="name"
+                  tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 12 }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 12 }}
+                  axisLine={false}
+                  tickLine={false}
+                />
                 <Tooltip
                   contentStyle={{
                     background: 'rgba(0,0,0,0.9)',
@@ -489,13 +708,17 @@ Return ONLY the JSON array. No other text.`
                   }}
                   cursor={{ fill: 'rgba(255,255,255,0.02)' }}
                 />
-                <Bar dataKey="amount" fill="rgba(255,255,255,0.6)" radius={[8, 8, 0, 0]} />
+                <Bar
+                  dataKey="amount"
+                  fill="rgba(255,255,255,0.6)"
+                  radius={[8, 8, 0, 0]}
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </motion.div>
 
-        {/* REAL Subscription Detector */}
+        {/* Subscription Detector */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -503,7 +726,7 @@ Return ONLY the JSON array. No other text.`
           className="liquid-glass rounded-3xl p-6 md:p-8 mb-6"
         >
           <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <h2 className="text-white text-lg font-medium font-inter">
                 Subscription Detector
               </h2>
@@ -551,33 +774,23 @@ Return ONLY the JSON array. No other text.`
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-yellow-400 rounded-full" />
-                <span className="text-white/40 text-xs font-inter">Unused (consider cancelling)</span>
+                <span className="text-white/40 text-xs font-inter">
+                  Unused (consider cancelling)
+                </span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-red-400 rounded-full" />
-                <span className="text-white/40 text-xs font-inter">Urgent (cancel immediately)</span>
+                <span className="text-white/40 text-xs font-inter">
+                  Urgent (cancel immediately)
+                </span>
               </div>
-            </div>
-          )}
-
-          {!subsAnalyzed && !analyzingSubs && (
-            <div className="text-center py-8">
-              {transactions.length === 0 ? (
-                <p className="text-white/30 text-sm font-inter">
-                  Add transactions first then click Analyze with AI.
-                </p>
-              ) : (
-                <p className="text-white/30 text-sm font-inter">
-                  Click Analyze with AI to detect recurring subscriptions from your {transactions.length} transactions.
-                </p>
-              )}
             </div>
           )}
 
           {analyzingSubs && (
             <div className="text-center py-8">
               <p className="text-white/30 text-sm font-inter">
-                🧠 AI is analyzing your transactions for recurring subscriptions...
+                🧠 AI is analyzing your transactions...
               </p>
             </div>
           )}
@@ -585,7 +798,7 @@ Return ONLY the JSON array. No other text.`
           {subsAnalyzed && !analyzingSubs && detectedSubs.length === 0 && (
             <div className="text-center py-8">
               <p className="text-white/30 text-sm font-inter">
-                No recurring subscriptions detected in your transactions.
+                No recurring subscriptions detected.
               </p>
             </div>
           )}
@@ -599,11 +812,16 @@ Return ONLY the JSON array. No other text.`
                 })
                 .map(function(sub, i) {
                   return (
-                    <div key={i} className="flex justify-between items-center py-4">
+                    <div
+                      key={i}
+                      className="flex justify-between items-center py-4 hover:bg-white/[0.02] transition-all rounded-xl px-2"
+                    >
                       <div className="flex items-center gap-4">
-                        <div className="liquid-glass rounded-xl p-2.5 relative">
-                          <CreditCard size={16} className="text-white/40" />
-                          <div className={'absolute -top-1 -right-1 w-3 h-3 rounded-full ' + getStatusDot(sub.status)} />
+                        <div className="liquid-glass rounded-xl p-2.5 relative flex items-center justify-center w-10 h-10">
+                          <SubIcon name={sub.name} />
+                          <div
+                            className={'absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 border-black ' + getStatusDot(sub.status)}
+                          />
                         </div>
                         <div>
                           <p className="text-white/80 text-sm font-inter font-medium">
@@ -617,8 +835,10 @@ Return ONLY the JSON array. No other text.`
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <span className={'liquid-glass rounded-full px-3 py-1 text-xs font-inter ' + getStatusColor(sub.status)}>
+                      <div className="flex items-center gap-3 flex-wrap justify-end">
+                        <span
+                          className={'liquid-glass rounded-full px-3 py-1 text-xs font-inter ' + getStatusColor(sub.status)}
+                        >
                           {getStatusText(sub)}
                         </span>
                         {(sub.status === 'urgent' || sub.status === 'unused') && (
@@ -650,9 +870,16 @@ Return ONLY the JSON array. No other text.`
           <div className="min-h-48 mb-4 space-y-3 max-h-64 overflow-y-auto">
             {aiMessages.map(function(msg, i) {
               return (
-                <div key={i} className={'flex ' + (msg.role === 'user' ? 'justify-end' : 'justify-start')}>
-                  <div className={'liquid-glass rounded-2xl p-4 max-w-lg ' + (msg.role === 'user' ? 'bg-white/5' : '')}>
-                    <p className="text-white/70 text-sm leading-relaxed font-inter">{msg.text}</p>
+                <div
+                  key={i}
+                  className={'flex ' + (msg.role === 'user' ? 'justify-end' : 'justify-start')}
+                >
+                  <div
+                    className={'liquid-glass rounded-2xl p-4 max-w-lg ' + (msg.role === 'user' ? 'bg-white/5' : '')}
+                  >
+                    <p className="text-white/70 text-sm leading-relaxed font-inter">
+                      {msg.text}
+                    </p>
                   </div>
                 </div>
               )
