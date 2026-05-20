@@ -5,8 +5,6 @@ import Sidebar from '../components/Sidebar'
 import { supabase } from '../lib/supabase'
 import { useUser } from '@clerk/clerk-react'
 
-const BUFFER_ACCESS_TOKEN = import.meta.env.VITE_BUFFER_ACCESS_TOKEN
-
 const platformSelectors = ['Twitter', 'Instagram', 'LinkedIn', 'All']
 
 function generateCalendar() {
@@ -22,10 +20,6 @@ function generateCalendar() {
 
 export default function Content() {
   const { user } = useUser()
-  const [bufferConnected, setBufferConnected] = useState(false)
-  const [bufferProfiles, setBufferProfiles] = useState<any[]>([])
-  const [publishingIndex, setPublishingIndex] = useState<number | null>(null)
-  const [publishSuccess, setPublishSuccess] = useState<number | null>(null)
   const [activePlatform, setActivePlatform] = useState(3)
   const [niche, setNiche] = useState('')
   const [goal, setGoal] = useState('')
@@ -35,6 +29,7 @@ export default function Content() {
   const [loadingSaved, setLoadingSaved] = useState(true)
   const [savingIndex, setSavingIndex] = useState<number | null>(null)
   const [activeTab, setActiveTab] = useState<'generate' | 'saved' | 'calendar'>('generate')
+  const [copySuccess, setCopySuccess] = useState<number | null>(null)
 
   const { days, calendarCells } = generateCalendar()
 
@@ -42,69 +37,6 @@ export default function Content() {
     Twitter: 'bg-blue-400/40',
     Instagram: 'bg-pink-400/40',
     LinkedIn: 'bg-blue-600/40',
-  }
-
-  // Auto connect Buffer on load
-  useEffect(() => {
-    if (BUFFER_ACCESS_TOKEN) {
-      fetchBufferProfiles()
-    }
-  }, [])
-
-  // Fetch Buffer profiles
-  const fetchBufferProfiles = async () => {
-    try {
-      const response = await fetch(
-        `https://api.bufferapp.com/1/profiles.json?access_token=${BUFFER_ACCESS_TOKEN}`
-      )
-      const data = await response.json()
-      if (Array.isArray(data)) {
-        setBufferProfiles(data)
-        setBufferConnected(true)
-      }
-    } catch (error) {
-      console.error('Buffer profiles error:', error)
-    }
-  }
-
-  // Disconnect Buffer
-  const disconnectBuffer = () => {
-    setBufferConnected(false)
-    setBufferProfiles([])
-  }
-
-  // Publish to Buffer
-  const publishToBuffer = async (post: any, index: number) => {
-    if (!BUFFER_ACCESS_TOKEN || bufferProfiles.length === 0) return
-    setPublishingIndex(index)
-
-    try {
-      const profile = bufferProfiles.find(
-        (p: any) => p.service.toLowerCase() === post.platform.toLowerCase()
-      ) || bufferProfiles[0]
-
-      const response = await fetch(
-        'https://api.bufferapp.com/1/updates/create.json',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams({
-            access_token: BUFFER_ACCESS_TOKEN,
-            text: post.text + '\n\n' + post.hashtags,
-            'profile_ids[]': profile.id,
-          }),
-        }
-      )
-      const data = await response.json()
-      if (data.success) {
-        setPublishSuccess(index)
-        setTimeout(() => setPublishSuccess(null), 3000)
-        await savePost(post, index)
-      }
-    } catch (error) {
-      console.error('Buffer publish error:', error)
-    }
-    setPublishingIndex(null)
   }
 
   // Fetch saved posts
@@ -220,7 +152,6 @@ Example format:
     })
     if (!error) {
       fetchSavedPosts()
-      setActiveTab('saved')
     }
     setSavingIndex(null)
   }
@@ -232,8 +163,31 @@ Example format:
   }
 
   // Copy to clipboard
-  const copyPost = (text: string) => {
+  const copyPost = (text: string, index?: number) => {
     navigator.clipboard.writeText(text)
+    if (index !== undefined) {
+      setCopySuccess(index)
+      setTimeout(() => setCopySuccess(null), 2000)
+    }
+  }
+
+  // Publish to social media
+  const publishToSocial = (post: any, index: number) => {
+    const fullText = post.text + '\n\n' + post.hashtags
+    const encoded = encodeURIComponent(fullText)
+
+    const urls: Record<string, string> = {
+      Twitter: `https://twitter.com/intent/tweet?text=${encoded}`,
+      LinkedIn: `https://www.linkedin.com/feed/?shareActive=true&text=${encoded}`,
+      Instagram: `https://www.instagram.com/`,
+    }
+
+    // Copy text first
+    navigator.clipboard.writeText(fullText)
+
+    // Open platform
+    const url = urls[post.platform] || urls['Twitter']
+    window.open(url, '_blank')
   }
 
   // Get posts for calendar day
@@ -259,86 +213,36 @@ Example format:
         {/* Header */}
         <div className="flex justify-between items-start mb-8">
           <div>
-            <h1 className="font-instrument text-4xl text-white mb-2">Content Manager</h1>
+            <h1 className="font-instrument text-4xl text-white mb-2">
+              Content Manager
+            </h1>
             <p className="text-white/40 text-sm font-inter">
               {savedPosts.length} posts saved in your database.
             </p>
           </div>
         </div>
 
-        {/* Buffer Connection */}
-        <div className="liquid-glass rounded-3xl p-6 mb-8">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-white text-lg font-medium font-inter">
-              Connected Platforms
-            </h2>
-            {bufferConnected ? (
-              <button
-                onClick={disconnectBuffer}
-                className="liquid-glass rounded-full px-4 py-2 text-red-400/60 text-xs font-inter hover:bg-white/5 transition-all"
-              >
-                Disconnect
-              </button>
-            ) : (
-              <button
-                onClick={fetchBufferProfiles}
-                className="liquid-glass rounded-full px-5 py-2.5 text-white text-sm font-inter hover:bg-white/5 transition-all flex items-center gap-2"
-              >
-                <Zap size={14} />
-                Connect Buffer
-              </button>
-            )}
-          </div>
-
-          {bufferConnected && bufferProfiles.length > 0 ? (
-            <div className="flex flex-wrap gap-4">
-              {bufferProfiles.map((profile: any) => (
-                <div
-                  key={profile.id}
-                  className="liquid-glass rounded-2xl px-6 py-4 flex items-center gap-3"
-                >
-                  <div className="w-5 h-5 rounded-full bg-white/10 flex-shrink-0" />
-                  <div>
-                    <span className="text-white/70 text-sm font-inter capitalize">
-                      {profile.service}
-                    </span>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-green-400/60 text-xs font-inter">Connected</span>
-                      <span className="text-white/30 text-xs font-inter">
-                        · {profile.formatted_username}
-                      </span>
-                    </div>
-                  </div>
+        {/* Platform Row */}
+        <div className="flex flex-wrap gap-4 mb-8">
+          {[
+            { name: 'Twitter/X', note: 'One click post' },
+            { name: 'Instagram', note: 'Auto copy + open' },
+            { name: 'LinkedIn', note: 'One click post' },
+            { name: 'YouTube', note: 'Coming soon' },
+          ].map((p) => (
+            <div
+              key={p.name}
+              className="liquid-glass rounded-2xl px-6 py-4 flex items-center gap-3"
+            >
+              <div className="w-5 h-5 rounded-full bg-white/10 flex-shrink-0" />
+              <div>
+                <span className="text-white/70 text-sm font-inter">{p.name}</span>
+                <div className="mt-0.5">
+                  <span className="text-white/30 text-xs font-inter">{p.note}</span>
                 </div>
-              ))}
+              </div>
             </div>
-          ) : bufferConnected ? (
-            <p className="text-white/30 text-sm font-inter">
-              Loading your connected accounts...
-            </p>
-          ) : (
-            <div className="flex flex-wrap gap-4">
-              {[
-                { name: 'Twitter/X', msg: 'Connect via Buffer' },
-                { name: 'Instagram', msg: 'Connect via Buffer' },
-                { name: 'LinkedIn', msg: 'Connect via Buffer' },
-                { name: 'YouTube', msg: 'Coming soon' },
-              ].map((p) => (
-                <div
-                  key={p.name}
-                  className="liquid-glass rounded-2xl px-6 py-4 flex items-center gap-3"
-                >
-                  <div className="w-5 h-5 rounded-full bg-white/10 flex-shrink-0" />
-                  <div>
-                    <span className="text-white/70 text-sm font-inter">{p.name}</span>
-                    <div className="mt-0.5">
-                      <span className="text-white/30 text-xs font-inter">{p.msg}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          ))}
         </div>
 
         {/* Tab Selector */}
@@ -468,11 +372,11 @@ Example format:
 
                       <div className="flex gap-2 flex-wrap">
                         <button
-                          onClick={() => copyPost(post.text + '\n\n' + post.hashtags)}
-                          className="liquid-glass rounded-full px-4 py-1.5 text-xs text-white/50 font-inter hover:bg-white/5 transition-all cursor-pointer flex items-center gap-1"
+                          onClick={() => copyPost(post.text + '\n\n' + post.hashtags, i)}
+                          className="liquid-glass rounded-full px-4 py-1.5 text-xs font-inter hover:bg-white/5 transition-all cursor-pointer flex items-center gap-1 text-white/50"
                         >
                           <Copy size={12} />
-                          Copy
+                          {copySuccess === i ? '✅ Copied!' : 'Copy'}
                         </button>
                         <button
                           onClick={() => savePost(post, i)}
@@ -482,30 +386,13 @@ Example format:
                           <Calendar size={12} />
                           {savingIndex === i ? 'Saving...' : 'Save'}
                         </button>
-                        {bufferConnected ? (
-                          <button
-                            onClick={() => publishToBuffer(post, i)}
-                            disabled={publishingIndex === i}
-                            className={`liquid-glass rounded-full px-4 py-1.5 text-xs font-inter hover:bg-white/5 transition-all cursor-pointer flex items-center gap-1 ${
-                              publishSuccess === i ? 'text-green-400/70' : 'text-white/60'
-                            }`}
-                          >
-                            <Zap size={12} />
-                            {publishingIndex === i
-                              ? 'Publishing...'
-                              : publishSuccess === i
-                              ? '✅ Published!'
-                              : 'Publish to Buffer'}
-                          </button>
-                        ) : (
-                          <button
-                            onClick={fetchBufferProfiles}
-                            className="liquid-glass rounded-full px-4 py-1.5 text-xs text-white/40 font-inter hover:bg-white/5 transition-all cursor-pointer flex items-center gap-1"
-                          >
-                            <Zap size={12} />
-                            Connect to Publish
-                          </button>
-                        )}
+                        <button
+                          onClick={() => publishToSocial(post, i)}
+                          className="liquid-glass rounded-full px-4 py-1.5 text-xs text-white/60 font-inter hover:bg-white/5 transition-all cursor-pointer flex items-center gap-1"
+                        >
+                          <Zap size={12} />
+                          Post Now ↗
+                        </button>
                       </div>
                     </motion.div>
                   ))}
@@ -565,7 +452,7 @@ Example format:
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
+                        <div className="flex items-center gap-3 mb-2 flex-wrap">
                           <span className="liquid-glass rounded-full px-3 py-1 text-white/60 text-xs font-inter">
                             {post.platform}
                           </span>
@@ -579,6 +466,16 @@ Example format:
                         <p className="text-white/70 text-sm leading-relaxed font-inter">
                           {post.post_text}
                         </p>
+                        <button
+                          onClick={() => publishToSocial(
+                            { platform: post.platform, text: post.post_text, hashtags: '' },
+                            i
+                          )}
+                          className="liquid-glass rounded-full px-4 py-1.5 text-xs text-white/50 font-inter hover:bg-white/5 transition-all cursor-pointer flex items-center gap-1 mt-3"
+                        >
+                          <Zap size={12} />
+                          Post Now ↗
+                        </button>
                       </div>
                       <div className="flex flex-col gap-2 flex-shrink-0">
                         <button
@@ -616,7 +513,10 @@ Example format:
 
             <div className="grid grid-cols-7 gap-1 md:gap-2 mb-2">
               {days.map((d) => (
-                <div key={d} className="text-white/30 text-xs tracking-widest text-center font-inter py-2">
+                <div
+                  key={d}
+                  className="text-white/30 text-xs tracking-widest text-center font-inter py-2"
+                >
                   {d}
                 </div>
               ))}
@@ -632,13 +532,17 @@ Example format:
                   >
                     {day && (
                       <>
-                        <span className="text-white/30 text-xs font-inter block mb-1">{day}</span>
+                        <span className="text-white/30 text-xs font-inter block mb-1">
+                          {day}
+                        </span>
                         {dayPosts.map((post, j) => (
                           <div
                             key={j}
                             className="liquid-glass rounded-lg px-1 md:px-2 py-1 text-white/50 text-xs truncate font-inter flex items-center gap-1 mb-1"
                           >
-                            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${platformColors[post.platform] || 'bg-white/30'}`} />
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${platformColors[post.platform] || 'bg-white/30'}`}
+                            />
                             <span className="truncate hidden sm:inline">
                               {post.post_text.slice(0, 20)}...
                             </span>
