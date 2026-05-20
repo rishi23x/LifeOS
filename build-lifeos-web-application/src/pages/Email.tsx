@@ -2,7 +2,7 @@ import { motion } from 'framer-motion'
 import { useState, useEffect } from 'react'
 import {
   Mail, AlertCircle, FileText, Send, Shield, BookOpen, Search,
-  Zap, RotateCcw, Plus, Trash2, ArrowRight
+  Zap, RotateCcw, Trash2, ArrowRight
 } from 'lucide-react'
 import Sidebar from '../components/Sidebar'
 import { supabase } from '../lib/supabase'
@@ -31,7 +31,7 @@ const mockEmails = [
 We are pleased to offer you the position of Senior Developer at Google. After careful consideration of your application and interviews, the hiring committee has unanimously decided to extend this offer.
 
 Position: Senior Frontend Developer
-Team: Chrome Browser  
+Team: Chrome Browser
 Location: Mountain View, CA (Hybrid)
 Compensation: $210,000 base + equity package
 
@@ -116,29 +116,41 @@ export default function EmailPage() {
   const [selectedEmail, setSelectedEmail] = useState(0)
   const [activeFolder, setActiveFolder] = useState(0)
   const [activeTab, setActiveTab] = useState<'inbox' | 'compose' | 'templates' | 'saved'>('inbox')
-
-  // AI Draft state
   const [aiDraft, setAiDraft] = useState('')
   const [generatingDraft, setGeneratingDraft] = useState(false)
   const [draftEdited, setDraftEdited] = useState('')
-
-  // Compose state
   const [composeEmail, setComposeEmail] = useState('')
   const [composeContext, setComposeContext] = useState('')
   const [composedResult, setComposedResult] = useState('')
   const [composing, setComposing] = useState(false)
-
-  // Tone analyzer
   const [toneText, setToneText] = useState('')
   const [toneResult, setToneResult] = useState('')
   const [analyzingTone, setAnalyzingTone] = useState(false)
-
-  // Saved emails from Supabase
   const [savedEmails, setSavedEmails] = useState<any[]>([])
   const [loadingSaved, setLoadingSaved] = useState(true)
   const [savingDraft, setSavingDraft] = useState(false)
+  const [copyMessage, setCopyMessage] = useState('')
 
   const current = mockEmails[selectedEmail]
+
+  // Copy to clipboard with fallback
+  const copyToClipboard = (text: string) => {
+    try {
+      navigator.clipboard.writeText(text).then(() => {
+        setCopyMessage('✅ Copied! Paste it into your email client.')
+        setTimeout(() => setCopyMessage(''), 3000)
+      })
+    } catch {
+      const textarea = document.createElement('textarea')
+      textarea.value = text
+      document.body.appendChild(textarea)
+      textarea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textarea)
+      setCopyMessage('✅ Copied! Paste it into your email client.')
+      setTimeout(() => setCopyMessage(''), 3000)
+    }
+  }
 
   // Fetch saved emails
   const fetchSavedEmails = async () => {
@@ -156,6 +168,12 @@ export default function EmailPage() {
   useEffect(() => {
     fetchSavedEmails()
   }, [user])
+
+  // Reset draft when email changes
+  useEffect(() => {
+    setAiDraft('')
+    setDraftEdited('')
+  }, [selectedEmail])
 
   // Call Groq
   const callGroq = async (prompt: string, maxTokens = 400) => {
@@ -175,11 +193,11 @@ export default function EmailPage() {
     return data.choices?.[0]?.message?.content || ''
   }
 
-  // Generate AI draft for selected email
+  // Generate AI draft
   const generateDraft = async () => {
     setGeneratingDraft(true)
     const prompt = `You are a professional email assistant writing on behalf of the user.
-    
+
 Read this email carefully:
 "${current.full}"
 
@@ -188,7 +206,7 @@ Subject: ${current.subject}
 
 Write a professional, natural, and concise reply email.
 - Keep it under 100 words
-- Sound human, not robotic
+- Sound human not robotic
 - Be appropriate for the context
 - Do not include subject line
 - Just write the body of the reply`
@@ -203,12 +221,6 @@ Write a professional, natural, and concise reply email.
     }
     setGeneratingDraft(false)
   }
-
-  // Auto generate draft when email is selected
-  useEffect(() => {
-    setAiDraft('')
-    setDraftEdited('')
-  }, [selectedEmail])
 
   // Save draft to Supabase
   const saveDraft = async () => {
@@ -232,19 +244,19 @@ Write a professional, natural, and concise reply email.
     fetchSavedEmails()
   }
 
-  // Compose new email with AI
+  // Compose with AI
   const composeWithAI = async () => {
     if (!composeEmail) return
     setComposing(true)
     const prompt = `You are a professional email writer.
-    
+
 Write a professional email based on this request:
 "${composeEmail}"
 
 Additional context: "${composeContext || 'none'}"
 
 Requirements:
-- Write only the email body (no subject line needed)
+- Write only the email body
 - Sound natural and professional
 - Be concise and clear
 - End with an appropriate sign-off`
@@ -262,7 +274,7 @@ Requirements:
   const analyzeTone = async () => {
     if (!toneText) return
     setAnalyzingTone(true)
-    const prompt = `Analyze the tone of this email in 2-3 sentences. 
+    const prompt = `Analyze the tone of this email in 2-3 sentences.
 Rate it on: Professionalism (1-10), Friendliness (1-10), Clarity (1-10).
 Suggest one specific improvement.
 
@@ -278,9 +290,10 @@ Email: "${toneText}"`
   }
 
   // Use template
-  const useTemplate = async (template: any) => {
+  const useTemplate = (template: any) => {
     setActiveTab('compose')
     setComposeEmail(template.prompt)
+    setComposedResult('')
   }
 
   return (
@@ -303,6 +316,17 @@ Email: "${toneText}"`
             AI reads, drafts, and manages your emails automatically.
           </p>
         </div>
+
+        {/* Copy Message Toast */}
+        {copyMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="liquid-glass rounded-full px-6 py-3 text-white/70 text-sm font-inter mb-4 inline-block"
+          >
+            {copyMessage}
+          </motion.div>
+        )}
 
         {/* Tab Selector */}
         <div className="liquid-glass rounded-full flex p-1 mb-8 w-fit overflow-x-auto">
@@ -436,7 +460,7 @@ Email: "${toneText}"`
                   {!aiDraft && !generatingDraft && (
                     <button
                       onClick={generateDraft}
-                      className="liquid-glass rounded-full px-5 py-2.5 text-white/60 text-sm font-inter hover:bg-white/5 transition-all flex items-center gap-2 mb-4"
+                      className="liquid-glass rounded-full px-5 py-2.5 text-white/60 text-sm font-inter hover:bg-white/5 transition-all flex items-center gap-2"
                     >
                       <Zap size={14} />
                       Generate AI Reply
@@ -444,7 +468,7 @@ Email: "${toneText}"`
                   )}
 
                   {generatingDraft && (
-                    <p className="text-white/30 text-sm font-inter mb-4">
+                    <p className="text-white/30 text-sm font-inter">
                       🧠 AI is drafting your reply...
                     </p>
                   )}
@@ -459,7 +483,7 @@ Email: "${toneText}"`
                       <div className="flex gap-3 flex-wrap">
                         <button
                           onClick={generateDraft}
-                          className="liquid-glass rounded-full px-5 py-2.5 flex items-center gap-2 text-white/60 text-sm hover:bg-white/5 transition-all cursor-pointer font-inter"
+                          className="liquid-glass rounded-full px-4 py-2 flex items-center gap-2 text-white/60 text-sm hover:bg-white/5 transition-all cursor-pointer font-inter"
                         >
                           <RotateCcw size={14} />
                           Regenerate
@@ -467,14 +491,14 @@ Email: "${toneText}"`
                         <button
                           onClick={saveDraft}
                           disabled={savingDraft}
-                          className="liquid-glass rounded-full px-5 py-2.5 flex items-center gap-2 text-white/60 text-sm hover:bg-white/5 transition-all cursor-pointer font-inter"
+                          className="liquid-glass rounded-full px-4 py-2 flex items-center gap-2 text-white/60 text-sm hover:bg-white/5 transition-all cursor-pointer font-inter"
                         >
                           <FileText size={14} />
                           {savingDraft ? 'Saving...' : 'Save Draft'}
                         </button>
                         <button
-                          onClick={() => navigator.clipboard.writeText(draftEdited)}
-                          className="liquid-glass rounded-full px-5 py-2.5 flex items-center gap-2 text-white text-sm hover:bg-white/5 transition-all cursor-pointer font-inter"
+                          onClick={() => copyToClipboard(draftEdited)}
+                          className="liquid-glass rounded-full px-4 py-2 flex items-center gap-2 text-white text-sm hover:bg-white/5 transition-all cursor-pointer font-inter"
                         >
                           <Send size={14} />
                           Copy & Send
@@ -505,7 +529,7 @@ Email: "${toneText}"`
               <div className="space-y-3 mb-4">
                 <div className="liquid-glass rounded-2xl px-5 py-3">
                   <textarea
-                    placeholder="What do you want to write? (e.g. Follow up on my job application at Google, sent 1 week ago...)"
+                    placeholder="What do you want to write? (e.g. Follow up on my job application at Google sent 1 week ago...)"
                     value={composeEmail}
                     onChange={e => setComposeEmail(e.target.value)}
                     className="bg-transparent text-white placeholder:text-white/30 outline-none w-full text-sm font-inter min-h-20 resize-none"
@@ -539,18 +563,20 @@ Email: "${toneText}"`
                   <p className="text-white/70 text-sm leading-relaxed font-inter whitespace-pre-wrap mb-4">
                     {composedResult}
                   </p>
-                  <div className="flex gap-3">
+                  <div className="flex gap-3 flex-wrap">
                     <button
-                      onClick={() => navigator.clipboard.writeText(composedResult)}
-                      className="liquid-glass rounded-full px-5 py-2 text-white/50 text-xs font-inter hover:bg-white/5 transition-all"
+                      onClick={() => copyToClipboard(composedResult)}
+                      className="liquid-glass rounded-full px-5 py-2 text-white/60 text-sm font-inter hover:bg-white/5 transition-all flex items-center gap-2"
                     >
-                      📋 Copy Email
+                      <Send size={14} />
+                      Copy & Send
                     </button>
                     <button
                       onClick={composeWithAI}
-                      className="liquid-glass rounded-full px-5 py-2 text-white/50 text-xs font-inter hover:bg-white/5 transition-all"
+                      className="liquid-glass rounded-full px-5 py-2 text-white/50 text-sm font-inter hover:bg-white/5 transition-all flex items-center gap-2"
                     >
-                      🔄 Regenerate
+                      <RotateCcw size={14} />
+                      Regenerate
                     </button>
                   </div>
                 </motion.div>
@@ -559,7 +585,7 @@ Email: "${toneText}"`
 
             {/* Tone Analyzer */}
             <div className="liquid-glass rounded-3xl p-6 md:p-8">
-              <h2 className="text-white text-lg font-medium mb-6 font-inter">
+              <h2 className="text-white text-lg font-medium mb-2 font-inter">
                 Tone Analyzer
               </h2>
               <p className="text-white/40 text-xs font-inter mb-4">
@@ -695,7 +721,7 @@ Email: "${toneText}"`
                           {email.ai_draft}
                         </p>
                         <button
-                          onClick={() => navigator.clipboard.writeText(email.ai_draft)}
+                          onClick={() => copyToClipboard(email.ai_draft)}
                           className="liquid-glass rounded-full px-4 py-1.5 text-xs text-white/50 font-inter hover:bg-white/5 transition-all mt-3 flex items-center gap-1"
                         >
                           <Send size={11} />
