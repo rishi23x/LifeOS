@@ -135,22 +135,26 @@ export default function EmailPage() {
 
   // Copy to clipboard with fallback
   const copyToClipboard = (text: string) => {
-    try {
-      navigator.clipboard.writeText(text).then(() => {
-        setCopyMessage('✅ Copied! Paste it into your email client.')
-        setTimeout(() => setCopyMessage(''), 3000)
-      })
-    } catch {
-      const textarea = document.createElement('textarea')
-      textarea.value = text
-      document.body.appendChild(textarea)
-      textarea.select()
-      document.execCommand('copy')
-      document.body.removeChild(textarea)
-      setCopyMessage('✅ Copied! Paste it into your email client.')
-      setTimeout(() => setCopyMessage(''), 3000)
-    }
+  const textarea = document.createElement('textarea')
+  textarea.value = text
+  textarea.style.position = 'fixed'
+  textarea.style.opacity = '0'
+  textarea.style.top = '0'
+  textarea.style.left = '0'
+  document.body.appendChild(textarea)
+  textarea.focus()
+  textarea.select()
+
+  try {
+    document.execCommand('copy')
+    setCopyMessage('✅ Copied! Now paste into your email.')
+  } catch {
+    setCopyMessage('❌ Copy failed. Please select and copy manually.')
   }
+
+  document.body.removeChild(textarea)
+  setTimeout(() => setCopyMessage(''), 4000)
+}
 
   // Fetch saved emails
   const fetchSavedEmails = async () => {
