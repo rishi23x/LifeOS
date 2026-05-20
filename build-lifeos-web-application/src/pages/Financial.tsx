@@ -63,8 +63,15 @@ export default function Financial() {
   }
 
   useEffect(function() {
-    fetchTransactions()
-  }, [user])
+  fetchTransactions()
+}, [user])
+
+// Auto analyze subscriptions after transactions load
+useEffect(function() {
+  if (!loading && transactions.length > 0 && !subsAnalyzed) {
+    detectSubscriptions()
+  }
+}, [loading, transactions])
 
   const addTransaction = async function() {
     if (!user || !newName || !newAmount) return
