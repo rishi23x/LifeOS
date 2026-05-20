@@ -569,13 +569,18 @@ Email: "${toneText}"`
                   </p>
                   <div className="flex gap-3 flex-wrap">
                     <button
-                      onClick={() => copyToClipboard(composedResult)}
-                      className="liquid-glass rounded-full px-5 py-2 text-white/60 text-sm font-inter hover:bg-white/5 transition-all flex items-center gap-2"
-                    >
-                      <Send size={14} />
-                      Copy & Send
-                    </button>
-                    <button
+  onClick={(e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    alert('Copying: ' + draftEdited.slice(0, 50))
+    copyToClipboard(draftEdited)
+  }}
+  className="liquid-glass rounded-full px-4 py-2 flex items-center gap-2 text-white text-sm hover:bg-white/5 transition-all cursor-pointer font-inter"
+  type="button"
+>
+  <Send size={14} />
+  Copy & Send
+</button>
                       onClick={composeWithAI}
                       className="liquid-glass rounded-full px-5 py-2 text-white/50 text-sm font-inter hover:bg-white/5 transition-all flex items-center gap-2"
                     >
