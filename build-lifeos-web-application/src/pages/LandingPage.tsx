@@ -199,7 +199,6 @@ function StatsBar() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={isInView ? { opacity: 1, y: 0 } : {}}
                 transition={{ duration: 0.6, delay: i * 0.1 }}
-                key={stat.label}
               >
                 <p className="font-instrument text-4xl text-white mb-1">{stat.value}</p>
                 <p className="text-white/40 text-xs font-inter tracking-widest uppercase">{stat.label}</p>
