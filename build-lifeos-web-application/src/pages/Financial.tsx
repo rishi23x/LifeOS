@@ -5,6 +5,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Toolti
 import Sidebar from '../components/Sidebar'
 import { supabase } from '../lib/supabase'
 import { useUser } from '@clerk/clerk-react'
+import { callAI } from '../lib/ai'
 
 function useAnimateInView() {
   const ref = useRef(null)
@@ -440,44 +441,25 @@ Return ONLY the JSON array. No other text.`
     },
   ]
 
-  const sendAiMessage = async function() {
+   const sendAiMessage = async function() {
     if (!aiInput.trim()) return
     const userMessage = aiInput
     setAiInput('')
-    setAiMessages(function(prev) {
-      return [...prev, { role: 'user', text: userMessage }]
-    })
+    setAiMessages(function(prev) { return [...prev, { role: 'user', text: userMessage }] })
     setAiLoading(true)
+
     const transactionSummary = transactions.length > 0
-      ? transactions.map(function(t) {
-          return t.name + ': $' + t.amount + ' (' + t.category + ')'
-        }).join(', ')
+      ? transactions.map(function(t) { return t.name + ': $' + t.amount + ' (' + t.category + ')' }).join(', ')
       : 'No transactions yet'
-    const prompt = 'You are a personal AI financial advisor. The user has these transactions: ' +
-      transactionSummary + '. Total spend: $' + totalSpend +
-      '. Answer this question in 2-3 sentences max, be specific and helpful: ' + userMessage
+
+    const prompt = 'You are a personal AI financial advisor. The user has these transactions: ' + transactionSummary + '. Total spend: $' + totalSpend + '. Answer this question in 2-3 sentences max, be specific and helpful: ' + userMessage
+
     try {
-      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + import.meta.env.VITE_GROQ_API_KEY,
-        },
-        body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
-          messages: [{ role: 'user', content: prompt }],
-          max_tokens: 300,
-        }),
-      })
-      const data = await response.json()
-      const aiReply = data.choices[0].message.content || 'Sorry I could not process that.'
-      setAiMessages(function(prev) {
-        return [...prev, { role: 'ai', text: aiReply }]
-      })
+      // THIS IS THE NEW SECURE CALL
+      const aiReply = await callAI(prompt, 300)
+      setAiMessages(function(prev) { return [...prev, { role: 'ai', text: aiReply }] })
     } catch {
-      setAiMessages(function(prev) {
-        return [...prev, { role: 'ai', text: 'Sorry, I could not connect to AI right now.' }]
-      })
+      setAiMessages(function(prev) { return [...prev, { role: 'ai', text: 'Sorry, I could not connect to AI right now.' }] })
     }
     setAiLoading(false)
   }
