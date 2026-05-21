@@ -22,7 +22,6 @@ interface DetectedSubscription {
   occurrences: number
 }
 
-// Brand logo map using Clearbit
 const brandLogos: Record<string, string> = {
   'netflix': 'https://www.google.com/s2/favicons?domain=netflix.com&sz=64',
   'spotify': 'https://www.google.com/s2/favicons?domain=spotify.com&sz=64',
@@ -77,8 +76,18 @@ const brandLogos: Record<string, string> = {
   'claude': 'https://www.google.com/s2/favicons?domain=claude.ai&sz=64',
   'whatsapp': 'https://www.google.com/s2/favicons?domain=whatsapp.com&sz=64',
   'telegram': 'https://www.google.com/s2/favicons?domain=telegram.org&sz=64',
+  'doordash': 'https://www.google.com/s2/favicons?domain=doordash.com&sz=64',
+  'lyft': 'https://www.google.com/s2/favicons?domain=lyft.com&sz=64',
+  'peloton': 'https://www.google.com/s2/favicons?domain=peloton.com&sz=64',
+  'headspace': 'https://www.google.com/s2/favicons?domain=headspace.com&sz=64',
+  'calm': 'https://www.google.com/s2/favicons?domain=calm.com&sz=64',
+  'substack': 'https://www.google.com/s2/favicons?domain=substack.com&sz=64',
+  'skillshare': 'https://www.google.com/s2/favicons?domain=skillshare.com&sz=64',
+  'icloud': 'https://www.google.com/s2/favicons?domain=icloud.com&sz=64',
+  'vercel': 'https://www.google.com/s2/favicons?domain=vercel.com&sz=64',
+  'heroku': 'https://www.google.com/s2/favicons?domain=heroku.com&sz=64',
 }
-// Emoji fallback map
+
 const emojiMap: Record<string, string> = {
   'gym': '🏋️',
   'fitness': '💪',
@@ -122,10 +131,8 @@ const emojiMap: Record<string, string> = {
   'donation': '🤝',
   'gift': '🎁',
   'newspaper': '📰',
-  'magazine': '📖',
   'news': '📰',
   'book': '📚',
-  'library': '📚',
   'music': '🎵',
   'gaming': '🎮',
   'game': '🎮',
@@ -141,58 +148,46 @@ const emojiMap: Record<string, string> = {
   'security': '🔐',
   'cloud': '☁️',
   'storage': '💾',
-  'backup': '💾',
-  'antivirus': '🛡️',
-  'software': '💿',
-  'app': '📱',
-  'tool': '🔧',
   'investment': '📈',
-  'mutual fund': '📊',
+  'mutual': '📊',
   'sip': '📊',
   'crypto': '₿',
   'bitcoin': '₿',
-  'nft': '🖼️',
   'trading': '📈',
 }
 
 function getSubIcon(name: string): { type: 'logo'; url: string } | { type: 'emoji'; icon: string } {
   const lower = name.toLowerCase()
-
   for (const brand in brandLogos) {
     if (lower.includes(brand)) {
       return { type: 'logo', url: brandLogos[brand] }
     }
   }
-
   for (const key in emojiMap) {
     if (lower.includes(key)) {
       return { type: 'emoji', icon: emojiMap[key] }
     }
   }
-
   return { type: 'emoji', icon: '💳' }
 }
 
 function SubIcon({ name }: { name: string }) {
   const [imgError, setImgError] = useState(false)
   const icon = getSubIcon(name)
-
   if (icon.type === 'logo' && !imgError) {
     return (
       <img
         src={icon.url}
         alt={name}
-        className="w-6 h-6 rounded-md object-contain"
+        className="w-6 h-6 rounded-sm object-contain"
         onError={function() { setImgError(true) }}
       />
     )
   }
-
   if (icon.type === 'logo' && imgError) {
-    return <span className="text-lg">💳</span>
+    return <span className="text-base">💳</span>
   }
-
-  return <span className="text-lg">{icon.icon}</span>
+  return <span className="text-base">{icon.icon}</span>
 }
 
 export default function Financial() {
@@ -205,6 +200,7 @@ export default function Financial() {
   const [newName, setNewName] = useState('')
   const [newAmount, setNewAmount] = useState('')
   const [newCategory, setNewCategory] = useState('Food')
+  const [newBillingCycle, setNewBillingCycle] = useState('one-time')
   const [adding, setAdding] = useState(false)
 
   const [detectedSubs, setDetectedSubs] = useState<DetectedSubscription[]>([])
@@ -261,6 +257,7 @@ export default function Financial() {
       setNewName('')
       setNewAmount('')
       setNewCategory('Food')
+      setNewBillingCycle('one-time')
       setShowForm(false)
       fetchTransactions()
     }
@@ -318,25 +315,15 @@ export default function Financial() {
     }).join('\n')
 
     const prompt = `You are a subscription detection AI.
-
 Analyze these transactions and identify which ones are likely subscriptions or recurring payments:
-
 ${transactionList}
-
 Today's date: ${new Date().toISOString().split('T')[0]}
-
-For each transaction that looks like a subscription, return a JSON array.
-Each object must have:
-- name (string: transaction name)
-- amount (number: monthly cost)
+For each transaction return a JSON array where each object has:
+- name (string)
+- amount (number)
 - frequency (string: "monthly", "weekly", "annual", or "one-time")
 - status (string: "active", "unused", or "urgent")
-  - active = used recently or appears regularly
-  - unused = only appears once or hasn't appeared in a long time
-  - urgent = high cost and appears unused
-- reason (string: one sentence explanation)
-- daysSinceUsed (number: estimated days since last used, use 0 if recent)
-
+- daysSinceUsed (number: 0 if recent)
 Return ONLY the JSON array. No other text.`
 
     try {
@@ -352,15 +339,10 @@ Return ONLY the JSON array. No other text.`
           max_tokens: 600,
         }),
       })
-
       const data = await response.json()
       const content = data.choices[0].message.content.trim()
-      const cleaned = content
-        .replace(/```json\n?/g, '')
-        .replace(/```\n?/g, '')
-        .trim()
+      const cleaned = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
       const parsed = JSON.parse(cleaned)
-
       const subs: DetectedSubscription[] = parsed.map(function(item: any) {
         const txns = nameGroups[item.name.toLowerCase()] || []
         const lastTxn = txns[txns.length - 1]
@@ -378,7 +360,6 @@ Return ONLY the JSON array. No other text.`
           occurrences: txns.length,
         }
       })
-
       setDetectedSubs(subs)
     } catch {
       const fallbackSubs: DetectedSubscription[] = Object.entries(nameGroups).map(
@@ -467,17 +448,14 @@ Return ONLY the JSON array. No other text.`
       return [...prev, { role: 'user', text: userMessage }]
     })
     setAiLoading(true)
-
     const transactionSummary = transactions.length > 0
       ? transactions.map(function(t) {
           return t.name + ': $' + t.amount + ' (' + t.category + ')'
         }).join(', ')
       : 'No transactions yet'
-
     const prompt = 'You are a personal AI financial advisor. The user has these transactions: ' +
       transactionSummary + '. Total spend: $' + totalSpend +
       '. Answer this question in 2-3 sentences max, be specific and helpful: ' + userMessage
-
     try {
       const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
@@ -542,13 +520,16 @@ Return ONLY the JSON array. No other text.`
             animate={{ opacity: 1, y: 0 }}
             className="liquid-glass rounded-3xl p-6 mb-6"
           >
-            <h3 className="text-white text-base font-medium mb-4 font-inter">
+            <h3 className="text-white text-base font-medium mb-2 font-inter">
               New Transaction
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <p className="text-white/30 text-xs font-inter mb-4">
+              Enter the name exactly as you know it (e.g. Netflix, Spotify, Gym) for logo detection.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
               <input
                 type="text"
-                placeholder="Transaction name"
+                placeholder="Name (e.g. Netflix, Gym, Rent)"
                 value={newName}
                 onChange={function(e) { setNewName(e.target.value) }}
                 className="liquid-glass rounded-full px-5 py-3 bg-transparent text-white placeholder:text-white/30 outline-none text-sm font-inter"
@@ -569,6 +550,29 @@ Return ONLY the JSON array. No other text.`
                   return <option key={cat} value={cat}>{cat}</option>
                 })}
               </select>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <select
+                value={newBillingCycle}
+                onChange={function(e) { setNewBillingCycle(e.target.value) }}
+                className="liquid-glass rounded-full px-5 py-3 bg-black text-white outline-none text-sm font-inter cursor-pointer"
+              >
+                <option value="one-time">One-time Payment</option>
+                <option value="monthly">Monthly Subscription</option>
+                <option value="annual">Annual Subscription</option>
+                <option value="weekly">Weekly Subscription</option>
+              </select>
+
+              {/* Live icon preview */}
+              <div className="liquid-glass rounded-full px-5 py-3 flex items-center gap-3">
+                <div className="w-6 h-6 flex items-center justify-center">
+                  {newName ? <SubIcon name={newName} /> : <span className="text-white/20 text-base">💳</span>}
+                </div>
+                <span className="text-white/40 text-sm font-inter">
+                  {newName ? 'Logo preview' : 'Type name to see logo'}
+                </span>
+              </div>
+
               <button
                 type="button"
                 onClick={addTransaction}
@@ -630,7 +634,7 @@ Return ONLY the JSON array. No other text.`
                     className="flex items-center justify-between py-4 hover:bg-white/[0.02] transition-all rounded-xl px-2"
                   >
                     <div className="flex items-center gap-4">
-                      <div className="liquid-glass rounded-xl p-2.5 flex items-center justify-center w-10 h-10">
+                      <div className="liquid-glass rounded-xl p-2.5 flex items-center justify-center w-10 h-10 flex-shrink-0">
                         <SubIcon name={t.name} />
                       </div>
                       <div>
@@ -716,7 +720,7 @@ Return ONLY the JSON array. No other text.`
           transition={{ duration: 0.5, delay: 0.4 }}
           className="liquid-glass rounded-3xl p-6 md:p-8 mb-6"
         >
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
             <div className="flex items-center gap-3 flex-wrap">
               <h2 className="text-white text-lg font-medium font-inter">
                 Subscription Detector
@@ -747,7 +751,6 @@ Return ONLY the JSON array. No other text.`
             </button>
           </div>
 
-          {/* Wasted money alert */}
           {subsAnalyzed && wastedAmount > 0 && (
             <div className="liquid-glass rounded-2xl p-4 mb-4 border border-red-400/20">
               <p className="text-red-400/80 text-sm font-inter font-medium">
@@ -756,7 +759,6 @@ Return ONLY the JSON array. No other text.`
             </div>
           )}
 
-          {/* Legend */}
           {subsAnalyzed && (
             <div className="flex gap-4 mb-4 flex-wrap">
               <div className="flex items-center gap-2">
@@ -765,15 +767,11 @@ Return ONLY the JSON array. No other text.`
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-yellow-400 rounded-full" />
-                <span className="text-white/40 text-xs font-inter">
-                  Unused (consider cancelling)
-                </span>
+                <span className="text-white/40 text-xs font-inter">Unused</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-red-400 rounded-full" />
-                <span className="text-white/40 text-xs font-inter">
-                  Urgent (cancel immediately)
-                </span>
+                <span className="text-white/40 text-xs font-inter">Urgent</span>
               </div>
             </div>
           )}
@@ -808,7 +806,7 @@ Return ONLY the JSON array. No other text.`
                       className="flex justify-between items-center py-4 hover:bg-white/[0.02] transition-all rounded-xl px-2"
                     >
                       <div className="flex items-center gap-4">
-                        <div className="liquid-glass rounded-xl p-2.5 relative flex items-center justify-center w-10 h-10">
+                        <div className="liquid-glass rounded-xl p-2.5 relative flex items-center justify-center w-10 h-10 flex-shrink-0">
                           <SubIcon name={sub.name} />
                           <div
                             className={'absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 border-black ' + getStatusDot(sub.status)}
@@ -819,7 +817,7 @@ Return ONLY the JSON array. No other text.`
                             {sub.name}
                           </p>
                           <p className="text-white/40 text-xs mt-0.5 font-inter">
-                            ${sub.amount.toFixed(2)}/mo · {sub.frequency} · {sub.occurrences} transaction{sub.occurrences > 1 ? 's' : ''}
+                            ${sub.amount.toFixed(2)} · {sub.frequency} · {sub.occurrences} transaction{sub.occurrences > 1 ? 's' : ''}
                           </p>
                           <p className="text-white/30 text-xs font-inter mt-0.5">
                             Last recorded: {sub.lastUsed}
