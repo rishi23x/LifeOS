@@ -219,7 +219,7 @@ Keep it concise and actionable. Format with bullet points.`
       className="bg-black min-h-screen"
     >
       <Sidebar />
-      <main className="ml-0 md:ml-64 p-4 md:p-8">
+      <main className="ml-0 md:ml-64 p-4 md:p-8 pt-20 md:pt-8 pb-24 md:pb-8">
 
         <div className="flex justify-between items-start mb-8">
           <div>
