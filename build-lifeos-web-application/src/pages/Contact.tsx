@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import { Brain, ArrowLeft, Mail, Twitter, Linkedin, MessageCircle } from 'lucide-react'
+import { Brain, ArrowLeft, Mail, Linkedin, MessageCircle } from 'lucide-react'
 import { useState } from 'react'
 
 export default function Contact() {
@@ -67,12 +67,12 @@ export default function Contact() {
               action: function() { window.location.href = 'mailto:support@lifeos.app' }
             },
             {
-              icon: Twitter,
-              title: 'Twitter / X',
-              value: '@lifeosapp',
-              desc: 'Follow us for updates',
-              action: function() { window.open('https://x.com', '_blank') }
-            },
+  icon: MessageCircle,
+  title: 'Twitter / X',
+  value: '@lifeosapp',
+  desc: 'Follow us for updates',
+  action: function() { window.open('https://x.com', '_blank') }
+},
             {
               icon: Linkedin,
               title: 'LinkedIn',
