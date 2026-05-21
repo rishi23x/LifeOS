@@ -223,27 +223,64 @@ Example format:
         </div>
 
         {/* Platform Row */}
-        <div className="flex flex-wrap gap-4 mb-8">
-          {[
-            { name: 'Twitter/X', note: 'One click post' },
-            { name: 'Instagram', note: 'Auto copy + open' },
-            { name: 'LinkedIn', note: 'One click post' },
-            { name: 'YouTube', note: 'Coming soon' },
-          ].map((p) => (
-            <div
-              key={p.name}
-              className="liquid-glass rounded-2xl px-6 py-4 flex items-center gap-3"
-            >
-              <div className="w-5 h-5 rounded-full bg-white/10 flex-shrink-0" />
-              <div>
-                <span className="text-white/70 text-sm font-inter">{p.name}</span>
-                <div className="mt-0.5">
-                  <span className="text-white/30 text-xs font-inter">{p.note}</span>
-                </div>
-              </div>
-            </div>
-          ))}
+        {/* Platform Row */}
+<div className="flex flex-wrap gap-4 mb-8">
+  {[
+    {
+      name: 'Twitter / X',
+      note: 'One click post',
+      logo: 'https://www.google.com/s2/favicons?domain=x.com&sz=64',
+      comingSoon: false,
+    },
+    {
+      name: 'Instagram',
+      note: 'Auto copy + open',
+      logo: 'https://www.google.com/s2/favicons?domain=instagram.com&sz=64',
+      comingSoon: false,
+    },
+    {
+      name: 'LinkedIn',
+      note: 'One click post',
+      logo: 'https://www.google.com/s2/favicons?domain=linkedin.com&sz=64',
+      comingSoon: false,
+    },
+    {
+      name: 'YouTube',
+      note: 'Coming soon',
+      logo: 'https://www.google.com/s2/favicons?domain=youtube.com&sz=64',
+      comingSoon: true,
+    },
+  ].map(function(p) {
+    return (
+      <div
+        key={p.name}
+        className={'liquid-glass rounded-2xl px-6 py-4 flex items-center gap-3 ' + (p.comingSoon ? 'opacity-50' : '')}
+      >
+        <img
+          src={p.logo}
+          alt={p.name}
+          className="w-6 h-6 rounded-md object-contain flex-shrink-0"
+        />
+        <div>
+          <span className="text-white/70 text-sm font-inter block">
+            {p.name}
+          </span>
+          <span className={
+            'text-xs font-inter ' +
+            (p.comingSoon ? 'text-white/20' : 'text-white/30')
+          }>
+            {p.note}
+          </span>
         </div>
+        {p.comingSoon && (
+          <span className="liquid-glass rounded-full px-2 py-0.5 text-white/30 text-xs font-inter ml-auto">
+            Soon
+          </span>
+        )}
+      </div>
+    )
+  })}
+</div>
 
         {/* Tab Selector */}
         <div className="liquid-glass rounded-full flex p-1 mb-8 w-fit">
