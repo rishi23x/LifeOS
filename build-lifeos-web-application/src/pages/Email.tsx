@@ -468,7 +468,7 @@ No other text. Just the JSON array.`
       className="bg-black min-h-screen"
     >
       <Sidebar />
-      <main className="ml-0 md:ml-64 p-4 md:p-8">
+      <main className="ml-0 md:ml-64 p-4 md:p-8 pt-20 md:pt-8 pb-24 md:pb-8">
 
         <div className="mb-8">
           <h1 className="font-instrument text-4xl text-white mb-2">
