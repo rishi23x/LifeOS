@@ -7,10 +7,12 @@ import Financial from './pages/Financial'
 import Email from './pages/Email'
 import Jobs from './pages/Jobs'
 import Content from './pages/Content'
+import Privacy from './pages/Privacy'
+import Terms from './pages/Terms'
+import Contact from './pages/Contact'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isSignedIn, isLoaded } = useAuth()
-
   if (!isLoaded) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -18,17 +20,14 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
       </div>
     )
   }
-
   if (!isSignedIn) {
     return <Navigate to="/" replace />
   }
-
   return <>{children}</>
 }
 
 function HomeRoute() {
   const { isSignedIn, isLoaded } = useAuth()
-
   if (!isLoaded) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -36,11 +35,9 @@ function HomeRoute() {
       </div>
     )
   }
-
   if (isSignedIn) {
     return <Navigate to="/dashboard" replace />
   }
-
   return <LandingPage />
 }
 
@@ -74,6 +71,9 @@ function App() {
             <Content />
           </ProtectedRoute>
         } />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/contact" element={<Contact />} />
       </Routes>
     </AnimatePresence>
   )
