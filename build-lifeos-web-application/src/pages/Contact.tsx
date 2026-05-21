@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import { Brain, ArrowLeft, Mail, Linkedin, MessageCircle } from 'lucide-react'
+import { Brain, ArrowLeft, Mail, MessageCircle } from 'lucide-react'
 import { useState } from 'react'
 
 export default function Contact() {
@@ -74,8 +74,8 @@ export default function Contact() {
   action: function() { window.open('https://x.com', '_blank') }
 },
             {
-              icon: Linkedin,
-              title: 'LinkedIn',
+  icon: MessageCircle,
+  title: 'LinkedIn',
               value: 'LifeOS',
               desc: 'Connect with us',
               action: function() { window.open('https://linkedin.com', '_blank') }
