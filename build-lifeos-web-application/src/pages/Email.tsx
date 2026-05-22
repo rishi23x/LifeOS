@@ -7,6 +7,7 @@ import {
 import Sidebar from '../components/Sidebar'
 import { supabase } from '../lib/supabase'
 import { useUser } from '@clerk/clerk-react'
+import { callAI } from '../lib/ai'
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID
 const REDIRECT_URI = 'https://life-os-eosin-gamma.vercel.app/dashboard/email'
@@ -317,22 +318,9 @@ No other text. Just the JSON array.`
   }
 
   // Call Groq
-  const callGroq = async (prompt: string, maxTokens: number) => {
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + import.meta.env.VITE_GROQ_API_KEY,
-      },
-      body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: maxTokens,
-      }),
-    })
-    const data = await response.json()
-    return data.choices[0].message.content || ''
-  }
+ const callGroq = async (prompt: string, maxTokens: number) => {
+  return await callAI(prompt, maxTokens)
+}
 
   // Generate AI draft
   const generateDraft = async () => {
