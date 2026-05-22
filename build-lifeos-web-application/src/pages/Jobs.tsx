@@ -4,6 +4,7 @@ import { MapPin, DollarSign, Clock, Search, Plus, Trash2, ArrowRight, Zap } from
 import Sidebar from '../components/Sidebar'
 import { supabase } from '../lib/supabase'
 import { useUser } from '@clerk/clerk-react'
+import { callAI } from '../lib/ai'
 
 function useAnimateInView() {
   const ref = useRef(null)
@@ -102,21 +103,8 @@ export default function Jobs() {
   }
 
   const callGroq = async (prompt: string) => {
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${import.meta.env.VITE_GROQ_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: 500,
-      }),
-    })
-    const data = await response.json()
-    return data.choices?.[0]?.message?.content || 'Sorry I could not process that.'
-  }
+  return await callAI(prompt, 500)
+}
 
   const searchJobs = async () => {
     if (!searchQuery) return
