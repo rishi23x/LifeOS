@@ -4,6 +4,7 @@ import { Zap, Trash2, Copy, Calendar } from 'lucide-react'
 import Sidebar from '../components/Sidebar'
 import { supabase } from '../lib/supabase'
 import { useUser } from '@clerk/clerk-react'
+import { callAI } from '../lib/ai'
 
 const platformSelectors = ['Twitter', 'Instagram', 'LinkedIn', 'All']
 
@@ -58,21 +59,8 @@ export default function Content() {
 
   // Call Groq
   const callGroq = async (prompt: string) => {
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${import.meta.env.VITE_GROQ_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: 1000,
-      }),
-    })
-    const data = await response.json()
-    return data.choices?.[0]?.message?.content || ''
-  }
+  return await callAI(prompt, 1000)
+}
 
   // Generate content
   const generateContent = async () => {
