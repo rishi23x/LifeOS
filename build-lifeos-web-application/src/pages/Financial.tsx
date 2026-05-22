@@ -328,20 +328,7 @@ For each transaction return a JSON array where each object has:
 Return ONLY the JSON array. No other text.`
 
     try {
-      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + import.meta.env.VITE_GROQ_API_KEY,
-        },
-        body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
-          messages: [{ role: 'user', content: prompt }],
-          max_tokens: 600,
-        }),
-      })
-      const data = await response.json()
-      const content = data.choices[0].message.content.trim()
+      const content = await callAI(prompt, 600)
       const cleaned = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
       const parsed = JSON.parse(cleaned)
       const subs: DetectedSubscription[] = parsed.map(function(item: any) {
