@@ -53,124 +53,55 @@ function Navbar() {
 // ─── Hero ───
 function Hero() {
   return (
-    <section className="min-h-screen bg-black relative">
+    <section className="min-h-[90vh] flex flex-col items-center justify-center relative px-6">
+      <div className="bg-mesh" />
+      
+      {/* Status Badge */}
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="px-4 py-1 rounded-full border border-white/10 bg-white/5 backdrop-blur-md mb-8"
+      >
+        <span className="text-[10px] tracking-[0.2em] uppercase text-white/40 font-medium">
+          The future is now live • v1.0
+        </span>
+      </motion.div>
+
+      {/* Massive Heading */}
       <motion.div
-        className="absolute top-0 left-0 w-96 h-96 bg-blue-500/8 rounded-full blur-3xl"
-        animate={{ x: [0, 100, 0], y: [0, 50, 0] }}
-        transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
-      />
-      <motion.div
-        className="absolute bottom-0 right-0 w-96 h-96 bg-purple-500/6 rounded-full blur-3xl"
-        animate={{ x: [0, -100, 0], y: [0, -50, 0] }}
-        transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
-      />
-      <motion.div
-        className="absolute top-1/2 left-1/2 w-64 h-64 bg-white/2 rounded-full blur-3xl"
-        animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.6, 0.3] }}
-        transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
-      />
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 1.2, ease: [0.23, 1, 0.32, 1] }}
+        className="text-center"
+      >
+        <h1 className="display-text text-[15vw] md:text-[12vw] font-light leading-[0.8]">
+          Life<span className="italic text-white/20 font-light">OS</span>
+        </h1>
+        <p className="mt-8 text-white/30 text-lg md:text-xl font-light tracking-wide max-w-xl mx-auto font-inter">
+          The first Agentic operating system for the high-performance individual. 
+          Everything handled. While you slept.
+        </p>
+      </motion.div>
 
-      <div className="flex flex-col items-center justify-center text-center px-6 pt-32 pb-20 relative z-10">
-
-        {/* V1 Beta Badge */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="liquid-glass rounded-full px-4 py-1.5 inline-flex items-center gap-2 mb-4 border border-white/10"
-        >
-          <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
-          <span className="text-white/60 text-xs tracking-widest uppercase font-inter">
-            Version 1.0 — Now Live
-          </span>
-        </motion.div>
-
-        {/* Main Badge */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-          className="liquid-glass rounded-full px-4 py-1.5 inline-flex items-center gap-2 mb-8"
-        >
-          <Zap size={12} className="text-white/60" />
-          <span className="text-white/60 text-xs tracking-widest uppercase font-inter">
-            Agentic AI Platform — 2026
-          </span>
-        </motion.div>
-
-        {/* Heading */}
-        <motion.h1
-          initial={{ opacity: 0, y: 60 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: 0.2 }}
-          className="font-instrument text-7xl md:text-9xl text-white tracking-tight leading-none mb-6"
-        >
-          Your life,
-          <br />
-          <em className="italic text-white/50">automated.</em>
-        </motion.h1>
-
-        {/* Subheading */}
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.4 }}
-          className="text-white/50 text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed font-inter"
-        >
-          LifeOS is your personal AI agent that manages your finances, emails, job search, and content — autonomously, 24/7, while you focus on living.
-        </motion.p>
-
-        {/* CTA Buttons */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.6 }}
-          className="flex flex-col sm:flex-row gap-4 items-center mb-8"
-        >
-          <SignUpButton mode="modal">
-            <button className="bg-white text-black rounded-full px-8 py-4 text-sm font-semibold hover:bg-white/90 transition-all hover:scale-105 font-inter flex items-center gap-2">
-              <Rocket size={16} />
-              Start for Free
-            </button>
-          </SignUpButton>
-          <SignInButton mode="modal">
-            <button className="liquid-glass rounded-full px-8 py-4 text-white text-sm font-inter hover:bg-white/5 transition-all flex items-center gap-2">
-              Sign In
-              <ArrowRight size={16} />
-            </button>
-          </SignInButton>
-        </motion.div>
-
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.8, delay: 0.8 }}
-          className="text-white/20 text-xs font-inter mb-12"
-        >
-          Free forever · No credit card required · Setup in 2 minutes
-        </motion.p>
-
-        {/* Module Pills */}
-        <div className="flex flex-wrap justify-center gap-3">
-          {[
-            { icon: DollarSign, label: 'Financial Manager' },
-            { icon: Mail, label: 'Email Assistant' },
-            { icon: Briefcase, label: 'Job Application Bot' },
-            { icon: PenTool, label: 'Content Manager' },
-          ].map((item, i) => (
-            <motion.div
-              key={item.label}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 1 + i * 0.1 }}
-              className="liquid-glass rounded-full px-5 py-2.5 flex items-center gap-2 hover:scale-105 transition-transform cursor-pointer"
-            >
-              <item.icon size={16} className="text-white/60" />
-              <span className="text-white/60 text-sm font-inter">{item.label}</span>
-            </motion.div>
-          ))}
+      {/* Obsidian CTA */}
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.8 }}
+        className="mt-12 flex flex-col items-center gap-6"
+      >
+        <SignUpButton mode="modal">
+          <button className="px-10 py-4 bg-white text-black rounded-full font-semibold text-sm hover:scale-105 transition-all shadow-[0_0_40px_rgba(255,255,255,0.1)]">
+            Begin Journey — Free
+          </button>
+        </SignUpButton>
+        
+        <div className="flex items-center gap-8 opacity-20 hover:opacity-100 transition-opacity duration-500">
+           <img src="https://www.google.com/s2/favicons?domain=x.com&sz=32" className="grayscale invert" />
+           <img src="https://www.google.com/s2/favicons?domain=google.com&sz=32" className="grayscale invert" />
+           <img src="https://www.google.com/s2/favicons?domain=linkedin.com&sz=32" className="grayscale invert" />
         </div>
-      </div>
+      </motion.div>
     </section>
   )
 }
