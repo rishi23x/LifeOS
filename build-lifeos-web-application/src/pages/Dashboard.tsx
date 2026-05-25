@@ -256,22 +256,24 @@ export default function Dashboard() {
         </div>
 
         {/* Stats */}
-        <div ref={statsRef} className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+       <div ref={statsRef} className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
   {stats.map(function(stat, i) {
     return (
       <motion.div
         key={stat.label}
-        whileHover={{ scale: 1.02, backgroundColor: "rgba(255,255,255,0.03)" }}
-        className="obsidian-glass p-8 group relative overflow-hidden"
+        initial={{ opacity: 0, y: 30 }}
+        animate={statsInView ? { opacity: 1, y: 0 } : {}}
+        transition={{ duration: 0.5, delay: i * 0.1 }}
+        whileHover={{ scale: 1.02, y: -4 }}
+        className="liquid-glass rounded-2xl p-6 hover:bg-white/[0.02] transition-all cursor-default"
       >
-        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-100 transition-opacity">
-           <Zap size={14} className="text-blue-400" />
-        </div>
-        <p className="text-[10px] tracking-[0.2em] uppercase text-white/30 font-semibold mb-4">{stat.label}</p>
-        <p className="display-text text-5xl text-white font-light group-hover:text-blue-400 transition-colors">
+        <p className="text-white/40 text-xs tracking-widest uppercase mb-3 font-inter">
+          {stat.label}
+        </p>
+        <p className="font-instrument text-4xl text-white font-light mb-1">
           {stat.value}
         </p>
-        <p className="text-[11px] text-white/20 mt-4 font-inter">{stat.sub}</p>
+        <p className="text-white/30 text-xs font-inter">{stat.sub}</p>
       </motion.div>
     )
   })}
