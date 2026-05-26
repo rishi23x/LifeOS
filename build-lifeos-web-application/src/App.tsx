@@ -10,6 +10,7 @@ import Content from './pages/Content'
 import Privacy from './pages/Privacy'
 import Terms from './pages/Terms'
 import Contact from './pages/Contact'
+import Settings from './pages/Settings'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isSignedIn, isLoaded } = useAuth()
@@ -74,6 +75,12 @@ function App() {
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/contact" element={<Contact />} />
+        <Route path="/contact" element={<Contact />} />
+<Route path="/dashboard/settings" element={
+  <ProtectedRoute>
+    <Settings />
+  </ProtectedRoute>
+} />
       </Routes>
     </AnimatePresence>
   )
