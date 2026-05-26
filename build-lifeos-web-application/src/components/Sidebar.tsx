@@ -1,11 +1,16 @@
 import { useState, memo, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { useClerk, useUser } from '@clerk/clerk-react'
 import {
   Brain, LayoutDashboard, DollarSign,
-  Mail, Briefcase, PenTool, Settings, Menu, X
+  Mail, Briefcase, PenTool, Settings, Menu, X,
+  ChevronUp, Zap, Link2, Sparkles, HelpCircle, LogOut
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
+const { signOut } = useClerk()
+const { user } = useUser()
+const [showAccountMenu, setShowAccountMenu] = useState(false)
 const navItems = [
   { icon: LayoutDashboard, label: 'Overview', path: '/dashboard' },
   { icon: DollarSign, label: 'Financial', path: '/dashboard/financial' },
@@ -115,10 +120,93 @@ function SidebarContent({
       <div className="w-full h-px mb-4" style={dividerStyle} />
 
       {/* Settings */}
-      <div className="flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer text-white/30 hover:text-white/60 transition-all duration-200">
-        <Settings size={18} />
-        <span className="text-sm font-inter">Settings</span>
-      </div>
+      <div className="relative">
+  <div
+    onClick={function() { setShowAccountMenu(!showAccountMenu) }}
+    className="flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer text-white/30 hover:text-white/60 transition-all duration-200 hover:bg-white/5"
+  >
+    <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
+      <span className="text-white/60 text-xs font-inter font-medium">
+        {user?.firstName?.charAt(0) || 'U'}
+      </span>
+    </div>
+    <div className="flex-1 min-w-0">
+      <p className="text-white/60 text-xs font-inter font-medium truncate">
+        {user?.firstName || 'User'}
+      </p>
+      <p className="text-white/30 text-xs font-inter truncate">
+        {user?.emailAddresses[0]?.emailAddress || ''}
+      </p>
+    </div>
+    <ChevronUp
+      size={14}
+      className={'text-white/30 transition-transform duration-200 ' + (showAccountMenu ? 'rotate-180' : '')}
+    />
+  </div>
+
+  {/* Account Menu Popup */}
+  <AnimatePresence>
+    {showAccountMenu && (
+      <motion.div
+        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+        transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
+        className="absolute bottom-full left-0 right-0 mb-2 liquid-glass rounded-2xl p-2 z-50"
+        style={{ boxShadow: '0 -20px 40px rgba(0,0,0,0.4)' }}
+      >
+        {/* User Card */}
+        <div className="flex items-center gap-3 px-3 py-3 mb-1 border-b border-white/5">
+          <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
+            <span className="text-white/70 text-sm font-inter font-medium">
+              {user?.firstName?.charAt(0) || 'U'}
+            </span>
+          </div>
+          <div className="min-w-0">
+            <p className="text-white/80 text-sm font-inter font-medium truncate">
+              {user?.firstName + ' ' + (user?.lastName || '')}
+            </p>
+            <p className="text-white/30 text-xs font-inter truncate">
+              {user?.emailAddresses[0]?.emailAddress}
+            </p>
+          </div>
+        </div>
+
+        {/* Menu Items */}
+        {[
+          { icon: Zap, label: 'Upgrade to Pro', color: 'text-yellow-400/70', action: function() { navigate('/') } },
+          { icon: Link2, label: 'Linked Accounts', color: 'text-white/50', action: function() { navigate('/dashboard/settings?tab=accounts') } },
+          { icon: Brain, label: 'Memories', color: 'text-white/50', action: function() { navigate('/dashboard/settings?tab=memories') } },
+          { icon: Sparkles, label: "What's New", color: 'text-white/50', action: function() { navigate('/dashboard/settings?tab=whatsnew') } },
+          { icon: HelpCircle, label: 'Support', color: 'text-white/50', action: function() { window.location.href = 'mailto:support@lifeos.app' } },
+          { icon: Settings, label: 'Settings', color: 'text-white/50', action: function() { navigate('/dashboard/settings') } },
+        ].map(function(item) {
+          return (
+            <div
+              key={item.label}
+              onClick={function() { item.action(); setShowAccountMenu(false) }}
+              className={'flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-white/5 transition-all ' + item.color}
+            >
+              <item.icon size={15} />
+              <span className="text-sm font-inter">{item.label}</span>
+            </div>
+          )
+        })}
+
+        {/* Sign Out */}
+        <div className="border-t border-white/5 mt-1 pt-1">
+          <div
+            onClick={function() { signOut(); setShowAccountMenu(false) }}
+            className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-white/5 transition-all text-red-400/60 hover:text-red-400/80"
+          >
+            <LogOut size={15} />
+            <span className="text-sm font-inter">Sign Out</span>
+          </div>
+        </div>
+      </motion.div>
+    )}
+  </AnimatePresence>
+</div>
 
       <div className="px-4 mt-3">
         <span className="text-white/15 text-xs font-inter">LifeOS v1.0</span>
