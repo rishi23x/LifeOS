@@ -291,18 +291,29 @@ No other text. Just the JSON array.`
   }
 
   // Copy to clipboard
-  const doCopy = (text: string) => {
-    const el = document.createElement('textarea')
-    el.value = text
-    el.style.position = 'fixed'
-    el.style.left = '-9999px'
-    document.body.appendChild(el)
-    el.select()
-    document.execCommand('copy')
-    document.body.removeChild(el)
-    setCopyMessage('Copied! Paste into your email client.')
-    setTimeout(function() { setCopyMessage('') }, 3000)
+  const doCopy = (text: string, senderEmail?: string) => {
+  const el = document.createElement('textarea')
+  el.value = text
+  el.style.position = 'fixed'
+  el.style.left = '-9999px'
+  document.body.appendChild(el)
+  el.select()
+  document.execCommand('copy')
+  document.body.removeChild(el)
+  setCopyMessage('Copied! Opening Gmail...')
+  setTimeout(function() { setCopyMessage('') }, 3000)
+
+  // Open Gmail compose with reply
+  if (senderEmail) {
+    const gmailUrl = 'https://mail.google.com/mail/?view=cm&fs=1&to=' +
+      encodeURIComponent(senderEmail) +
+      '&body=' +
+      encodeURIComponent(text)
+    window.open(gmailUrl, '_blank')
+  } else {
+    window.open('https://mail.google.com', '_blank')
   }
+}
 
   // Fetch saved emails from Supabase
   const fetchSavedEmails = async () => {
@@ -725,7 +736,7 @@ No other text. Just the JSON array.`
                             <textarea
                               value={draftEdited}
                               onChange={function(e) { setDraftEdited(e.target.value) }}
-                              className="liquid-glass rounded-xl p-4 w-full text-white/70 text-sm leading-relaxed min-h-32 bg-transparent outline-none resize-none font-inter mb-4"
+                              className="liquid-glass rounded-xl p-4 w-full text-white/70 text-sm leading-relaxed min-h-32 max-h-64 overflow-y-auto bg-transparent outline-none resize-none font-inter mb-4"
                             />
                             <div className="flex gap-3 flex-wrap">
                               <button
@@ -746,7 +757,7 @@ No other text. Just the JSON array.`
                               </button>
                               <button
                                 type="button"
-                                onClick={function() { doCopy(draftEdited) }}
+                                onClick={function() { doCopy(draftEdited, current?.senderEmail) }}
                                 className="liquid-glass rounded-full px-4 py-2 flex items-center gap-2 text-white text-sm hover:bg-white/5 transition-all cursor-pointer font-inter"
                               >
                                 <Send size={14} />
