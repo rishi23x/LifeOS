@@ -56,7 +56,11 @@ const activeStyle = {
 }
 
 const accountMenuStyle = {
-  boxShadow: '0 -20px 40px rgba(0,0,0,0.4)'
+  background: 'rgba(10,10,10,0.98)',
+  backdropFilter: 'blur(20px)',
+  WebkitBackdropFilter: 'blur(20px)',
+  border: '1px solid rgba(255,255,255,0.08)',
+  boxShadow: '0 -20px 60px rgba(0,0,0,0.8)',
 }
 
 function SidebarContent({
@@ -184,11 +188,11 @@ function SidebarContent({
               {/* Menu Items */}
               {[
                 {
-                  icon: Zap,
-                  label: 'Upgrade to Pro',
-                  color: 'text-yellow-400/70',
-                  action: function() { navigate('/') }
-                },
+  icon: Zap,
+  label: 'Upgrade to Pro',
+  color: 'text-yellow-400/70',
+  action: function() { navigate('/dashboard/settings?tab=subscription') }
+},
                 {
                   icon: Link2,
                   label: 'Linked Accounts',
