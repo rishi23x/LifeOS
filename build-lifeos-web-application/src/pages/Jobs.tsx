@@ -113,7 +113,33 @@ export default function Jobs() {
 
     const appId = import.meta.env.VITE_ADZUNA_APP_ID
     const appKey = import.meta.env.VITE_ADZUNA_APP_KEY
-    const country = 'in'
+    const countryMap: Record<string, string> = {
+  'india': 'in',
+  'usa': 'us',
+  'us': 'us',
+  'united states': 'us',
+  'uk': 'gb',
+  'united kingdom': 'gb',
+  'canada': 'ca',
+  'australia': 'au',
+  'germany': 'de',
+  'france': 'fr',
+  'singapore': 'sg',
+  'dubai': 'ae',
+  'uae': 'ae',
+  'netherlands': 'nl',
+  'remote': 'us',
+}
+
+const locationLower = searchLocation.toLowerCase()
+let country = 'in' // default India
+
+for (const key in countryMap) {
+  if (locationLower.includes(key)) {
+    country = countryMap[key]
+    break
+  }
+}
     const url = `https://api.adzuna.com/v1/api/jobs/${country}/search/1?app_id=${appId}&app_key=${appKey}&results_per_page=10&what=${encodeURIComponent(searchQuery)}&where=${encodeURIComponent(searchLocation)}&content-type=application/json`
 
     try {
