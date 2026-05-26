@@ -223,19 +223,19 @@ export default function SettingsPage() {
                             })
                           }}
                           className={
-                            'w-12 h-6 rounded-full transition-all duration-300 relative flex-shrink-0 ' +
-                            (notifications[notif.key as keyof typeof notifications]
-                              ? 'bg-white/20'
-                              : 'bg-white/5')
-                          }
+  'w-12 h-6 rounded-full transition-all duration-300 relative flex-shrink-0 ' +
+  (notifications[notif.key as keyof typeof notifications]
+    ? 'bg-green-500/40'
+    : 'bg-red-500/20')
+}
                         >
                           <div
                             className={
-                              'absolute top-1 w-4 h-4 rounded-full bg-white transition-all duration-300 ' +
-                              (notifications[notif.key as keyof typeof notifications]
-                                ? 'left-7'
-                                : 'left-1')
-                            }
+  'absolute top-1 w-4 h-4 rounded-full transition-all duration-300 ' +
+  (notifications[notif.key as keyof typeof notifications]
+    ? 'left-7 bg-green-400'
+    : 'left-1 bg-red-400/60')
+}
                           />
                         </button>
                       </div>
@@ -439,11 +439,11 @@ export default function SettingsPage() {
                 <div className="space-y-3">
                   {[
                     {
-                      name: 'Gmail',
-                      desc: 'Read and draft emails',
-                      logo: 'https://www.google.com/s2/favicons?domain=gmail.com&sz=32',
-                      connected: true,
-                    },
+  name: 'Gmail',
+  desc: 'Read and draft emails',
+  logo: 'https://www.google.com/s2/favicons?domain=gmail.com&sz=32',
+  connected: !!localStorage.getItem('gmail_token'),
+},
                     {
                       name: 'Google',
                       desc: 'Sign in with Google',
@@ -451,23 +451,37 @@ export default function SettingsPage() {
                       connected: true,
                     },
                     {
-                      name: 'LinkedIn',
-                      desc: 'Job applications and content',
-                      logo: 'https://www.google.com/s2/favicons?domain=linkedin.com&sz=32',
-                      connected: false,
-                    },
-                    {
-                      name: 'Twitter / X',
-                      desc: 'Content publishing',
-                      logo: 'https://www.google.com/s2/favicons?domain=x.com&sz=32',
-                      connected: false,
-                    },
-                    {
-                      name: 'Instagram',
-                      desc: 'Content publishing',
-                      logo: 'https://www.google.com/s2/favicons?domain=instagram.com&sz=32',
-                      connected: false,
-                    },
+  name: 'LinkedIn',
+  desc: 'One click posting',
+  logo: 'https://www.google.com/s2/favicons?domain=linkedin.com&sz=32',
+  connected: false,
+  comingSoon: false,
+  action: function() { window.open('https://linkedin.com', '_blank') }
+},
+{
+  name: 'Twitter / X',
+  desc: 'One click posting',
+  logo: 'https://www.google.com/s2/favicons?domain=x.com&sz=32',
+  connected: false,
+  comingSoon: false,
+  action: function() { window.open('https://x.com', '_blank') }
+},
+{
+  name: 'Instagram',
+  desc: 'Copy and post',
+  logo: 'https://www.google.com/s2/favicons?domain=instagram.com&sz=32',
+  connected: false,
+  comingSoon: false,
+  action: function() { window.open('https://instagram.com', '_blank') }
+},
+{
+  name: 'YouTube',
+  desc: 'Coming in V2',
+  logo: 'https://www.google.com/s2/favicons?domain=youtube.com&sz=32',
+  connected: false,
+  comingSoon: true,
+  action: function() {}
+},
                   ].map(function(account) {
                     return (
                       <div
@@ -489,17 +503,38 @@ export default function SettingsPage() {
                             </p>
                           </div>
                         </div>
-                        <button
-                          type="button"
-                          className={
-                            'liquid-glass rounded-full px-4 py-1.5 text-xs font-inter transition-all ' +
-                            (account.connected
-                              ? 'text-red-400/50 hover:text-red-400/70 border border-red-400/10'
-                              : 'text-white/50 hover:text-white/70')
-                          }
-                        >
-                          {account.connected ? 'Disconnect' : 'Connect'}
-                        </button>
+                        {account.comingSoon ? (
+  <span className="liquid-glass rounded-full px-4 py-1.5 text-xs font-inter text-white/20">
+    Coming Soon
+  </span>
+) : account.connected ? (
+  <button
+    type="button"
+    onClick={function() {
+      if (account.name === 'Gmail') {
+        localStorage.removeItem('gmail_token')
+        window.location.reload()
+      }
+    }}
+    className="liquid-glass rounded-full px-4 py-1.5 text-xs font-inter text-red-400/50 hover:text-red-400/70 border border-red-400/10 transition-all"
+  >
+    Disconnect
+  </button>
+) : (
+  <button
+    type="button"
+    onClick={function() {
+      if (account.name === 'Gmail') {
+        navigate('/dashboard/email')
+      } else if (account.action) {
+        account.action()
+      }
+    }}
+    className="liquid-glass rounded-full px-4 py-1.5 text-xs font-inter text-white/50 hover:text-white/70 transition-all"
+  >
+    {account.name === 'Gmail' ? 'Connect' : 'Open'}
+  </button>
+)}
                       </div>
                     )
                   })}
