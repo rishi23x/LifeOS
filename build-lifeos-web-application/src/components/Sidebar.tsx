@@ -8,9 +8,6 @@ import {
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
-const { signOut } = useClerk()
-const { user } = useUser()
-const [showAccountMenu, setShowAccountMenu] = useState(false)
 const navItems = [
   { icon: LayoutDashboard, label: 'Overview', path: '/dashboard' },
   { icon: DollarSign, label: 'Financial', path: '/dashboard/financial' },
@@ -219,6 +216,9 @@ function Sidebar() {
   const navigate = useNavigate()
   const location = useLocation()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const { signOut } = useClerk()
+  const { user } = useUser()
+  const [showAccountMenu, setShowAccountMenu] = useState(false)
 
   const handleSetMobileOpen = useCallback(function(open: boolean) {
     setMobileOpen(open)
