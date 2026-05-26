@@ -452,26 +452,26 @@ export default function SettingsPage() {
                     },
                     {
   name: 'LinkedIn',
-  desc: 'One click posting',
+  desc: 'Coming in V2',
   logo: 'https://www.google.com/s2/favicons?domain=linkedin.com&sz=32',
   connected: false,
-  comingSoon: false,
+  comingSoon: true,
   action: function() { window.open('https://linkedin.com', '_blank') }
 },
 {
   name: 'Twitter / X',
-  desc: 'One click posting',
+  desc: 'Coming in V2',
   logo: 'https://www.google.com/s2/favicons?domain=x.com&sz=32',
   connected: false,
-  comingSoon: false,
+  comingSoon: true,
   action: function() { window.open('https://x.com', '_blank') }
 },
 {
   name: 'Instagram',
-  desc: 'Copy and post',
+  desc: 'Coming in V2',
   logo: 'https://www.google.com/s2/favicons?domain=instagram.com&sz=32',
   connected: false,
-  comingSoon: false,
+  comingSoon: true,
   action: function() { window.open('https://instagram.com', '_blank') }
 },
 {
