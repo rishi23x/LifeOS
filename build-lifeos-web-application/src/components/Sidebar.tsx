@@ -16,7 +16,6 @@ const navItems = [
   { icon: PenTool, label: 'Content', path: '/dashboard/content' },
 ]
 
-// Extracted outside component to prevent re-creation on every render
 const desktopStyle = {
   background: 'rgba(255,255,255,0.01)',
   backdropFilter: 'blur(20px)',
@@ -56,17 +55,30 @@ const activeStyle = {
   borderLeft: '2px solid rgba(255,255,255,0.3)',
 }
 
+const accountMenuStyle = {
+  boxShadow: '0 -20px 40px rgba(0,0,0,0.4)'
+}
+
 function SidebarContent({
   navigate,
   location,
   setMobileOpen,
+  user,
+  signOut,
+  showAccountMenu,
+  setShowAccountMenu,
 }: {
   navigate: (path: string) => void
   location: { pathname: string }
   setMobileOpen: (open: boolean) => void
+  user: any
+  signOut: () => void
+  showAccountMenu: boolean
+  setShowAccountMenu: (open: boolean) => void
 }) {
   return (
     <div className="flex flex-col h-full px-4 py-6">
+
       {/* Logo */}
       <div
         className="flex items-center gap-3 px-2 mb-10 cursor-pointer group"
@@ -116,94 +128,132 @@ function SidebarContent({
       {/* Divider */}
       <div className="w-full h-px mb-4" style={dividerStyle} />
 
-      {/* Settings */}
+      {/* Account Menu */}
       <div className="relative">
-  <div
-    onClick={function() { setShowAccountMenu(!showAccountMenu) }}
-    className="flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer text-white/30 hover:text-white/60 transition-all duration-200 hover:bg-white/5"
-  >
-    <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
-      <span className="text-white/60 text-xs font-inter font-medium">
-        {user?.firstName?.charAt(0) || 'U'}
-      </span>
-    </div>
-    <div className="flex-1 min-w-0">
-      <p className="text-white/60 text-xs font-inter font-medium truncate">
-        {user?.firstName || 'User'}
-      </p>
-      <p className="text-white/30 text-xs font-inter truncate">
-        {user?.emailAddresses[0]?.emailAddress || ''}
-      </p>
-    </div>
-    <ChevronUp
-      size={14}
-      className={'text-white/30 transition-transform duration-200 ' + (showAccountMenu ? 'rotate-180' : '')}
-    />
-  </div>
-
-  {/* Account Menu Popup */}
-  <AnimatePresence>
-    {showAccountMenu && (
-      <motion.div
-        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: 10, scale: 0.95 }}
-        transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
-        className="absolute bottom-full left-0 right-0 mb-2 liquid-glass rounded-2xl p-2 z-50"
-        style={{ boxShadow: '0 -20px 40px rgba(0,0,0,0.4)' }}
-      >
-        {/* User Card */}
-        <div className="flex items-center gap-3 px-3 py-3 mb-1 border-b border-white/5">
-          <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
-            <span className="text-white/70 text-sm font-inter font-medium">
+        <div
+          onClick={function() { setShowAccountMenu(!showAccountMenu) }}
+          className="flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer text-white/30 hover:text-white/60 transition-all duration-200 hover:bg-white/5"
+        >
+          <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
+            <span className="text-white/60 text-xs font-inter font-medium">
               {user?.firstName?.charAt(0) || 'U'}
             </span>
           </div>
-          <div className="min-w-0">
-            <p className="text-white/80 text-sm font-inter font-medium truncate">
-              {user?.firstName + ' ' + (user?.lastName || '')}
+          <div className="flex-1 min-w-0">
+            <p className="text-white/60 text-xs font-inter font-medium truncate">
+              {user?.firstName || 'User'}
             </p>
             <p className="text-white/30 text-xs font-inter truncate">
-              {user?.emailAddresses[0]?.emailAddress}
+              {user?.emailAddresses?.[0]?.emailAddress || ''}
             </p>
           </div>
+          <ChevronUp
+            size={14}
+            className={'text-white/30 transition-transform duration-200 ' + (showAccountMenu ? '' : 'rotate-180')}
+          />
         </div>
 
-        {/* Menu Items */}
-        {[
-          { icon: Zap, label: 'Upgrade to Pro', color: 'text-yellow-400/70', action: function() { navigate('/') } },
-          { icon: Link2, label: 'Linked Accounts', color: 'text-white/50', action: function() { navigate('/dashboard/settings?tab=accounts') } },
-          { icon: Brain, label: 'Memories', color: 'text-white/50', action: function() { navigate('/dashboard/settings?tab=memories') } },
-          { icon: Sparkles, label: "What's New", color: 'text-white/50', action: function() { navigate('/dashboard/settings?tab=whatsnew') } },
-          { icon: HelpCircle, label: 'Support', color: 'text-white/50', action: function() { window.location.href = 'mailto:support@lifeos.app' } },
-          { icon: Settings, label: 'Settings', color: 'text-white/50', action: function() { navigate('/dashboard/settings') } },
-        ].map(function(item) {
-          return (
-            <div
-              key={item.label}
-              onClick={function() { item.action(); setShowAccountMenu(false) }}
-              className={'flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-white/5 transition-all ' + item.color}
+        {/* Popup Menu */}
+        <AnimatePresence>
+          {showAccountMenu && (
+            <motion.div
+              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+              className="absolute bottom-full left-0 right-0 mb-2 liquid-glass rounded-2xl p-2 z-50"
+              style={accountMenuStyle}
             >
-              <item.icon size={15} />
-              <span className="text-sm font-inter">{item.label}</span>
-            </div>
-          )
-        })}
+              {/* User Card */}
+              <div className="flex items-center gap-3 px-3 py-3 mb-1 border-b border-white/5">
+                <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
+                  <span className="text-white/70 text-sm font-inter font-medium">
+                    {user?.firstName?.charAt(0) || 'U'}
+                  </span>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-white/80 text-sm font-inter font-medium truncate">
+                    {(user?.firstName || '') + ' ' + (user?.lastName || '')}
+                  </p>
+                  <p className="text-white/30 text-xs font-inter truncate">
+                    {user?.emailAddresses?.[0]?.emailAddress || ''}
+                  </p>
+                </div>
+              </div>
 
-        {/* Sign Out */}
-        <div className="border-t border-white/5 mt-1 pt-1">
-          <div
-            onClick={function() { signOut(); setShowAccountMenu(false) }}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-white/5 transition-all text-red-400/60 hover:text-red-400/80"
-          >
-            <LogOut size={15} />
-            <span className="text-sm font-inter">Sign Out</span>
-          </div>
-        </div>
-      </motion.div>
-    )}
-  </AnimatePresence>
-</div>
+              {/* Menu Items */}
+              {[
+                {
+                  icon: Zap,
+                  label: 'Upgrade to Pro',
+                  color: 'text-yellow-400/70',
+                  action: function() { navigate('/') }
+                },
+                {
+                  icon: Link2,
+                  label: 'Linked Accounts',
+                  color: 'text-white/50',
+                  action: function() { navigate('/dashboard/settings?tab=accounts') }
+                },
+                {
+                  icon: Brain,
+                  label: 'Memories',
+                  color: 'text-white/50',
+                  action: function() { navigate('/dashboard/settings?tab=memories') }
+                },
+                {
+                  icon: Sparkles,
+                  label: "What's New",
+                  color: 'text-white/50',
+                  action: function() { navigate('/dashboard/settings?tab=whatsnew') }
+                },
+                {
+                  icon: HelpCircle,
+                  label: 'Support',
+                  color: 'text-white/50',
+                  action: function() { window.location.href = 'mailto:support@lifeos.app' }
+                },
+                {
+                  icon: Settings,
+                  label: 'Settings',
+                  color: 'text-white/50',
+                  action: function() { navigate('/dashboard/settings') }
+                },
+              ].map(function(item) {
+                return (
+                  <div
+                    key={item.label}
+                    onClick={function() {
+                      item.action()
+                      setShowAccountMenu(false)
+                      setMobileOpen(false)
+                    }}
+                    className={'flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-white/5 transition-all ' + item.color}
+                  >
+                    <item.icon size={15} />
+                    <span className="text-sm font-inter">{item.label}</span>
+                  </div>
+                )
+              })}
+
+              {/* Sign Out */}
+              <div className="border-t border-white/5 mt-1 pt-1">
+                <div
+                  onClick={function() {
+                    signOut()
+                    setShowAccountMenu(false)
+                    setMobileOpen(false)
+                  }}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-white/5 transition-all text-red-400/60 hover:text-red-400/80"
+                >
+                  <LogOut size={15} />
+                  <span className="text-sm font-inter">Sign Out</span>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
       <div className="px-4 mt-3">
         <span className="text-white/15 text-xs font-inter">LifeOS v1.0</span>
@@ -215,9 +265,9 @@ function SidebarContent({
 function Sidebar() {
   const navigate = useNavigate()
   const location = useLocation()
-  const [mobileOpen, setMobileOpen] = useState(false)
   const { signOut } = useClerk()
   const { user } = useUser()
+  const [mobileOpen, setMobileOpen] = useState(false)
   const [showAccountMenu, setShowAccountMenu] = useState(false)
 
   const handleSetMobileOpen = useCallback(function(open: boolean) {
@@ -230,7 +280,7 @@ function Sidebar() {
 
   return (
     <>
-      {/* ── DESKTOP SIDEBAR ── */}
+      {/* DESKTOP SIDEBAR */}
       <motion.aside
         initial={{ x: -80, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
@@ -242,10 +292,14 @@ function Sidebar() {
           navigate={navigate}
           location={location}
           setMobileOpen={handleSetMobileOpen}
+          user={user}
+          signOut={signOut}
+          showAccountMenu={showAccountMenu}
+          setShowAccountMenu={setShowAccountMenu}
         />
       </motion.aside>
 
-      {/* ── MOBILE TOP BAR ── */}
+      {/* MOBILE TOP BAR */}
       <div
         className="md:hidden fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-4"
         style={mobileTopStyle}
@@ -266,7 +320,7 @@ function Sidebar() {
         </button>
       </div>
 
-      {/* ── MOBILE DRAWER ── */}
+      {/* MOBILE DRAWER */}
       <AnimatePresence>
         {mobileOpen && (
           <>
@@ -291,13 +345,17 @@ function Sidebar() {
                 navigate={navigate}
                 location={location}
                 setMobileOpen={handleSetMobileOpen}
+                user={user}
+                signOut={signOut}
+                showAccountMenu={showAccountMenu}
+                setShowAccountMenu={setShowAccountMenu}
               />
             </motion.div>
           </>
         )}
       </AnimatePresence>
 
-      {/* ── MOBILE BOTTOM NAV ── */}
+      {/* MOBILE BOTTOM NAV */}
       <div
         className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around px-2 py-3"
         style={bottomNavStyle}
