@@ -1,10 +1,9 @@
 import { motion, useInView } from 'framer-motion'
 import { useRef, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { SignInButton, SignUpButton } from '@clerk/clerk-react'
 import {
-  ArrowUpRight, DollarSign, Mail, Briefcase,
-  PenTool, Brain, Zap, Check, ChevronRight,
+  DollarSign, Mail, Briefcase,
+  PenTool, Brain, Check, ChevronRight,
   Play, Sparkles, Shield, Smartphone, Globe,
   BarChart3, Users, Rocket
 } from 'lucide-react'
@@ -39,7 +38,6 @@ function FadingVideo({ src, className, style }: {
     const video = videoRef.current
     if (!video) return
     video.style.opacity = '0'
-
     const onLoaded = () => { video.play(); fadeTo(1, FADE_MS) }
     const onTimeUpdate = () => {
       if (!fadingOutRef.current && video.duration - video.currentTime <= FADE_OUT_LEAD && video.duration - video.currentTime > 0) {
@@ -56,7 +54,6 @@ function FadingVideo({ src, className, style }: {
         fadeTo(1, FADE_MS)
       }, 100)
     }
-
     video.addEventListener('loadeddata', onLoaded)
     video.addEventListener('timeupdate', onTimeUpdate)
     video.addEventListener('ended', onEnded)
@@ -81,7 +78,7 @@ function FadingVideo({ src, className, style }: {
   )
 }
 
-// ─── Blur Text (word by word) ───
+// ─── Blur Text ───
 function BlurText({ text, className }: { text: string; className?: string }) {
   const ref = useRef<HTMLParagraphElement>(null)
   const [visible, setVisible] = useState(false)
@@ -135,9 +132,7 @@ function Navbar() {
   const [scrolled, setScrolled] = useState(false)
 
   useEffect(function() {
-    const handleScroll = function() {
-      setScrolled(window.scrollY > 20)
-    }
+    const handleScroll = function() { setScrolled(window.scrollY > 20) }
     window.addEventListener('scroll', handleScroll)
     return function() { window.removeEventListener('scroll', handleScroll) }
   }, [])
@@ -152,7 +147,7 @@ function Navbar() {
       <div
         className="max-w-6xl mx-auto flex items-center justify-between px-6 py-3 rounded-full transition-all duration-500"
         style={{
-          background: scrolled ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.02)',
+          background: scrolled ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.02)',
           backdropFilter: 'blur(20px)',
           border: '1px solid rgba(255,255,255,0.08)',
         }}
@@ -174,35 +169,43 @@ function Navbar() {
 
         {/* Nav Links */}
         <div className="hidden md:flex items-center gap-8">
-          {['Features', 'V2 Coming', 'Pricing', 'About'].map(function(link, i) {
+          {[
+            { label: 'Features', href: '#features' },
+            { label: 'V2 Coming', href: '#v2coming' },
+            { label: 'Pricing', href: '#pricing' },
+            { label: 'About', href: '#about' },
+          ].map(function(link, i) {
             return (
               <motion.a
-                key={link}
-                href={'#' + link.toLowerCase().replace(' ', '')}
+                key={link.label}
+                href={link.href}
                 initial={{ opacity: 0, y: -5 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 + i * 0.05 }}
-                className="text-white/60 text-sm font-medium hover:text-white transition-colors font-inter"
+                className="text-white/60 text-sm font-medium hover:text-white transition-colors font-inter cursor-pointer"
               >
-                {link}
+                {link.label}
               </motion.a>
             )
           })}
         </div>
 
-        {/* CTA */}
+        {/* CTA Buttons */}
         <div className="flex items-center gap-3">
-          <SignInButton mode="modal">
-            <span className="text-white/60 text-sm font-medium cursor-pointer hover:text-white transition-colors font-inter hidden sm:block">
-              Sign In
-            </span>
-          </SignInButton>
-          <SignUpButton mode="modal">
-            <button className="flex items-center gap-2 bg-white text-black rounded-full px-5 py-2.5 text-sm font-semibold hover:bg-white/90 transition-all hover:scale-105 font-inter">
-              Get Started
-              <ArrowUpRight size={14} />
-            </button>
-          </SignUpButton>
+          <button
+            type="button"
+            onClick={function() { navigate('/sign-in') }}
+            className="text-white/60 text-sm font-medium cursor-pointer hover:text-white transition-colors font-inter hidden sm:block"
+          >
+            Sign In
+          </button>
+          <button
+            type="button"
+            onClick={function() { navigate('/sign-up') }}
+            className="flex items-center gap-2 bg-white text-black rounded-full px-5 py-2.5 text-sm font-semibold hover:bg-white/90 transition-all hover:scale-105 font-inter"
+          >
+            Get Started
+          </button>
         </div>
       </div>
     </motion.nav>
@@ -211,22 +214,20 @@ function Navbar() {
 
 // ─── Hero ───
 function Hero() {
+  const navigate = useNavigate()
+
   return (
     <section className="relative min-h-screen flex flex-col overflow-hidden">
-      {/* Background Video */}
       <FadingVideo
         src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260418_080021_d598092b-c4c2-4e53-8e46-94cf9064cd50.mp4"
         className="absolute left-1/2 top-0 -translate-x-1/2 object-cover object-top z-0"
         style={{ width: '120%', height: '120%' }}
       />
-
-      {/* Dark overlay for readability */}
       <div
         className="absolute inset-0 z-[1]"
         style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.6) 100%)' }}
       />
 
-      {/* Content */}
       <div className="relative z-10 flex flex-col items-center justify-center flex-1 text-center px-6 pt-32 pb-20">
 
         {/* Live Badge */}
@@ -284,7 +285,7 @@ function Hero() {
           transition={{ duration: 0.8, delay: 0.6 }}
           className="text-white/60 text-base md:text-lg max-w-xl mx-auto mb-10 leading-relaxed font-inter font-light"
         >
-          LifeOS is your personal AI team that manages your finances, emails, job search, and content — autonomously, 24/7, while you focus on what matters.
+          LifeOS is your personal AI team that manages your finances, emails, job search, and content — so you spend time on what actually matters.
         </motion.p>
 
         {/* CTAs */}
@@ -294,26 +295,28 @@ function Hero() {
           transition={{ duration: 0.8, delay: 0.8 }}
           className="flex flex-col sm:flex-row items-center gap-4 mb-16"
         >
-          <SignUpButton mode="modal">
-            <button
-              className="flex items-center gap-2 rounded-full px-8 py-4 text-sm font-semibold text-white transition-all hover:scale-105 font-inter"
-              style={{
-                background: 'rgba(255,255,255,0.1)',
-                backdropFilter: 'blur(20px)',
-                border: '1px solid rgba(255,255,255,0.2)',
-                boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.15)',
-              }}
-            >
-              <Rocket size={16} />
-              Begin Your Journey — Free
-            </button>
-          </SignUpButton>
-          <SignInButton mode="modal">
-            <button className="flex items-center gap-2 text-white/50 text-sm font-inter hover:text-white/80 transition-colors">
-              <Play size={14} className="fill-current" />
-              Already have an account
-            </button>
-          </SignInButton>
+          <button
+            type="button"
+            onClick={function() { navigate('/sign-up') }}
+            className="flex items-center gap-2 rounded-full px-8 py-4 text-sm font-semibold text-white transition-all hover:scale-105 font-inter"
+            style={{
+              background: 'rgba(255,255,255,0.1)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255,255,255,0.2)',
+              boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.15)',
+            }}
+          >
+            <Rocket size={16} />
+            Begin Your Journey — Free
+          </button>
+          <button
+            type="button"
+            onClick={function() { navigate('/sign-in') }}
+            className="flex items-center gap-2 text-white/50 text-sm font-inter hover:text-white/80 transition-colors"
+          >
+            <Play size={14} className="fill-current" />
+            Already have an account
+          </button>
         </motion.div>
 
         {/* Stats Cards */}
@@ -368,7 +371,7 @@ function Hero() {
         >
           Powered by world-class infrastructure
         </div>
-        <div className="flex items-center gap-8 md:gap-12">
+        <div className="flex items-center gap-8 md:gap-12 flex-wrap justify-center px-6">
           {['Groq AI', 'Supabase', 'Vercel', 'Clerk', 'Adzuna'].map(function(partner) {
             return (
               <span
@@ -390,6 +393,7 @@ function Hero() {
 function DashboardPreview() {
   const ref = useRef(null)
   const isInView = useInView(ref, { once: true, margin: '-100px' })
+  const navigate = useNavigate()
 
   return (
     <section className="py-32 px-6 bg-black" ref={ref}>
@@ -404,12 +408,11 @@ function DashboardPreview() {
             The Command Center
           </p>
           <BlurText
-            text="Everything handled. While you slept."
+            text="Your AI team. Always ready."
             className="font-instrument text-5xl md:text-7xl text-white tracking-tight"
           />
         </motion.div>
 
-        {/* macOS style window */}
         <motion.div
           initial={{ opacity: 0, y: 60 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
@@ -435,25 +438,25 @@ function DashboardPreview() {
             <div className="w-16" />
           </div>
 
-          {/* Dashboard Content */}
           <div className="p-6">
-            {/* Greeting */}
             <div className="mb-6">
-              <h2 className="font-instrument text-2xl text-white mb-1" style={{ fontStyle: 'italic' }}>
+              <h2
+                className="font-instrument text-2xl text-white mb-1"
+                style={{ fontStyle: 'italic' }}
+              >
                 Good morning, Alex.
               </h2>
               <p className="text-white/30 text-sm font-inter">
-                Your agents handled 47 tasks while you slept.
+                Here is what your agents have prepared for you today.
               </p>
             </div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
               {[
                 { label: 'Money Saved', value: '$342', sub: 'This month' },
-                { label: 'Emails Handled', value: '47', sub: 'Auto-drafted' },
-                { label: 'Jobs Applied', value: '12', sub: 'This week' },
-                { label: 'Posts Scheduled', value: '28', sub: 'Next 30 days' },
+                { label: 'Emails Drafted', value: '47', sub: 'Ready to review' },
+                { label: 'Jobs Found', value: '12', sub: 'Matching your profile' },
+                { label: 'Posts Ready', value: '28', sub: 'Next 30 days' },
               ].map(function(stat) {
                 return (
                   <div
@@ -476,7 +479,6 @@ function DashboardPreview() {
               })}
             </div>
 
-            {/* Activity Feed */}
             <div
               className="rounded-xl p-4"
               style={{
@@ -494,9 +496,9 @@ function DashboardPreview() {
               <div className="space-y-3">
                 {[
                   { icon: Mail, text: 'Drafted reply to Google job offer', time: '2m ago', badge: 'Review' },
-                  { icon: DollarSign, text: 'Cancelled Adobe CC — saved $54.99/mo', time: '1hr ago', badge: 'Done' },
-                  { icon: Briefcase, text: 'Applied to Senior Dev at Stripe', time: '3hr ago', badge: 'Sent' },
-                  { icon: PenTool, text: 'Scheduled LinkedIn post — goes live 9am', time: '5hr ago', badge: 'Scheduled' },
+                  { icon: DollarSign, text: 'Adobe CC not charged in 47 days — flagged', time: '1hr ago', badge: 'Verify' },
+                  { icon: Briefcase, text: '8 new jobs found matching your profile', time: '3hr ago', badge: 'View' },
+                  { icon: PenTool, text: 'LinkedIn post scheduled for 9am tomorrow', time: '5hr ago', badge: 'Scheduled' },
                 ].map(function(item, i) {
                   return (
                     <div key={i} className="flex items-center gap-3">
@@ -507,9 +509,9 @@ function DashboardPreview() {
                         <item.icon size={13} className="text-white/50" />
                       </div>
                       <p className="text-white/60 text-xs font-inter flex-1">{item.text}</p>
-                      <span className="text-white/20 text-xs font-inter">{item.time}</span>
+                      <span className="text-white/20 text-xs font-inter flex-shrink-0">{item.time}</span>
                       <span
-                        className="text-white/40 text-xs font-inter px-2 py-0.5 rounded-full"
+                        className="text-white/40 text-xs font-inter px-2 py-0.5 rounded-full flex-shrink-0"
                         style={{ background: 'rgba(255,255,255,0.05)' }}
                       >
                         {item.badge}
@@ -521,24 +523,24 @@ function DashboardPreview() {
             </div>
           </div>
 
-          {/* Blur overlay for mystery */}
+          {/* Blur overlay */}
           <div
             className="absolute bottom-0 left-0 right-0 h-24 flex items-end justify-center pb-6"
             style={{ background: 'linear-gradient(to bottom, transparent, rgba(14,16,20,0.98))' }}
           >
-            <SignUpButton mode="modal">
-              <button
-                className="flex items-center gap-2 rounded-full px-6 py-2.5 text-white text-sm font-inter font-medium transition-all hover:scale-105"
-                style={{
-                  background: 'rgba(255,255,255,0.08)',
-                  border: '1px solid rgba(255,255,255,0.15)',
-                  backdropFilter: 'blur(10px)',
-                }}
-              >
-                <Sparkles size={14} />
-                See your real dashboard
-              </button>
-            </SignUpButton>
+            <button
+              type="button"
+              onClick={function() { navigate('/sign-up') }}
+              className="flex items-center gap-2 rounded-full px-6 py-2.5 text-white text-sm font-inter font-medium transition-all hover:scale-105"
+              style={{
+                background: 'rgba(255,255,255,0.08)',
+                border: '1px solid rgba(255,255,255,0.15)',
+                backdropFilter: 'blur(10px)',
+              }}
+            >
+              <Sparkles size={14} />
+              See your real dashboard
+            </button>
           </div>
         </motion.div>
       </div>
@@ -556,8 +558,8 @@ function Features() {
       icon: DollarSign,
       tag: 'FINANCE',
       title: 'AI Financial Manager',
-      desc: 'Connects to your bank, categorizes spending, detects wasted subscriptions, and gives you a full financial health report every week.',
-      pills: ['Auto Categorization', 'Bill Negotiation', 'Investment Alerts', 'Weekly Reports'],
+      desc: 'Categorizes spending, detects subscriptions not charged recently, and gives you a full financial health report.',
+      pills: ['Auto Categorization', 'Subscription Alerts', 'Investment Insights', 'Weekly Reports'],
       tags: ['Subscription AI', 'Smart Budgets', 'Logo Detection', 'Spending Charts'],
     },
     {
@@ -572,7 +574,7 @@ function Features() {
       icon: Briefcase,
       tag: 'CAREER',
       title: 'AI Job Application Bot',
-      desc: 'Searches real job listings, generates tailored cover letters, preps you for interviews, and tracks every application.',
+      desc: 'Searches real live job listings, generates tailored cover letters, preps you for interviews, and tracks every application.',
       pills: ['Real Job Search', 'Cover Letters', 'Interview Prep', 'Application Tracker'],
       tags: ['Live Listings', 'AI Cover Letter', 'Status Tracking', 'LinkedIn Apply'],
     },
@@ -613,7 +615,7 @@ function Features() {
                 animate={isInView ? { opacity: 1, y: 0 } : {}}
                 transition={{ duration: 0.6, delay: i * 0.1 }}
                 whileHover={{ y: -8, scale: 1.01 }}
-                className="rounded-[1.25rem] p-6 flex flex-col min-h-[360px] cursor-pointer group"
+                className="rounded-[1.25rem] p-6 flex flex-col min-h-[360px] cursor-pointer"
                 style={{
                   background: 'rgba(255,255,255,0.02)',
                   backdropFilter: 'blur(10px)',
@@ -629,7 +631,6 @@ function Features() {
                   e.currentTarget.style.background = 'rgba(255,255,255,0.02)'
                 }}
               >
-                {/* Top Row */}
                 <div className="flex items-start justify-between gap-4 mb-auto">
                   <div
                     className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
@@ -655,8 +656,6 @@ function Features() {
                     })}
                   </div>
                 </div>
-
-                {/* Bottom */}
                 <div className="mt-6">
                   <p className="text-white/30 text-xs tracking-widest uppercase font-inter mb-2">
                     {card.tag}
@@ -719,19 +718,19 @@ function HowItWorks() {
               num: '01',
               icon: Globe,
               title: 'Connect Everything',
-              body: 'Link your Gmail, bank, and social accounts in under 2 minutes. Bank-level security. Zero configuration.',
+              body: 'Link your Gmail, and social accounts in under 2 minutes. Bank-level security. Zero configuration.',
             },
             {
               num: '02',
               icon: Brain,
-              title: 'Agents Take Over',
-              body: 'Four AI agents start working immediately. Reading emails, tracking spending, searching jobs, creating content.',
+              title: 'Agents Assist You',
+              body: 'Four AI agents start helping immediately. Reading emails, tracking spending, finding jobs, creating content.',
             },
             {
               num: '03',
               icon: Sparkles,
-              title: 'You Just Live',
-              body: 'Review what your agents did. Approve actions. Watch your life run itself while you focus on what actually matters.',
+              title: 'You Stay In Control',
+              body: 'Review what your agents prepared. Approve actions. You always have the final say on everything.',
             },
           ].map(function(step, i) {
             return (
@@ -801,7 +800,7 @@ function V2ComingSoon() {
             className="font-instrument text-5xl md:text-7xl text-white tracking-tight"
           />
           <p className="text-white/30 text-base max-w-xl mx-auto mt-6 font-inter leading-relaxed">
-            Version 1 is live and working. Version 2 is going to make it feel like you have a full team of experts working for you around the clock.
+            Version 1 is live. Version 2 will make it feel like you have a full team of experts working for you around the clock.
           </p>
         </motion.div>
 
@@ -851,7 +850,7 @@ function V2ComingSoon() {
                 animate={isInView ? { opacity: 1, y: 0 } : {}}
                 transition={{ duration: 0.6, delay: i * 0.08 }}
                 whileHover={{ y: -6, scale: 1.01 }}
-                className="rounded-[1.25rem] p-6 relative overflow-hidden group"
+                className="rounded-[1.25rem] p-6 relative overflow-hidden"
                 style={{
                   background: 'rgba(255,255,255,0.02)',
                   border: '1px solid rgba(255,255,255,0.06)',
@@ -896,27 +895,6 @@ function Testimonials() {
   const ref = useRef(null)
   const isInView = useInView(ref, { once: true, margin: '-100px' })
 
-  const testimonials = [
-    {
-      quote: "LifeOS gave me back 3 hours every week. It reads like email from the future. The Gmail categorization alone is worth it.",
-      name: "Arjun Mehta",
-      role: "Founder",
-      company: "NEXUS LABS",
-    },
-    {
-      quote: "The job application bot found me 3 interviews in one week. The cover letters it generates are indistinguishable from ones I'd write myself.",
-      name: "Priya Sharma",
-      role: "Software Engineer",
-      company: "TECHCORP",
-    },
-    {
-      quote: "I stopped dreading my inbox. The AI drafts replies in my voice and I just hit approve. Game changing for anyone drowning in email.",
-      name: "Marcus Johnson",
-      role: "Product Manager",
-      company: "BUILDFAST",
-    },
-  ]
-
   return (
     <section
       className="py-32 px-6 bg-black"
@@ -935,7 +913,26 @@ function Testimonials() {
         </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {testimonials.map(function(t, i) {
+          {[
+            {
+              quote: "LifeOS gave me back 3 hours every week. The Gmail categorization alone is worth it. Red for urgent, green for normal — I see what matters instantly.",
+              name: "Arjun Mehta",
+              role: "Founder",
+              company: "NEXUS LABS",
+            },
+            {
+              quote: "The job application bot found me 3 interviews in one week. The cover letters it generates are indistinguishable from ones I would write myself.",
+              name: "Priya Sharma",
+              role: "Software Engineer",
+              company: "TECHCORP",
+            },
+            {
+              quote: "I stopped dreading my inbox. The AI drafts replies in my voice and I just hit approve. Game changing for anyone drowning in email.",
+              name: "Marcus Johnson",
+              role: "Product Manager",
+              company: "BUILDFAST",
+            },
+          ].map(function(t, i) {
             return (
               <motion.figure
                 key={t.name}
@@ -974,13 +971,15 @@ function Testimonials() {
 function Pricing() {
   const ref = useRef(null)
   const isInView = useInView(ref, { once: true, margin: '-100px' })
+  const navigate = useNavigate()
   const [yearly, setYearly] = useState(false)
 
   const plans = [
     {
       tag: 'Free',
-      price: yearly ? '$0' : '$0',
-      desc: 'For individuals getting started with AI automation.',
+      price: '$0',
+      period: 'forever',
+      desc: 'For individuals getting started with AI assistance.',
       features: [
         'All 4 AI Modules (limited)',
         '100 AI actions per month',
@@ -993,8 +992,9 @@ function Pricing() {
     },
     {
       tag: 'Pro',
-      price: yearly ? '$290/yr' : '$29/mo',
-      desc: 'For power users who want their entire life automated.',
+      price: yearly ? '$290' : '$29',
+      period: yearly ? 'per year' : 'per month',
+      desc: 'For power users who want AI assistance across all areas of life.',
       features: [
         'All 4 AI Modules (unlimited)',
         'Unlimited AI actions',
@@ -1009,7 +1009,8 @@ function Pricing() {
     },
     {
       tag: 'Business',
-      price: yearly ? '$990/yr' : '$99/mo',
+      price: yearly ? '$990' : '$99',
+      period: yearly ? 'per year' : 'per month',
       desc: 'For teams and agencies who want shared AI agents.',
       features: [
         'Everything in Pro',
@@ -1032,12 +1033,9 @@ function Pricing() {
       <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none overflow-hidden">
         <div
           className="font-instrument font-bold leading-[0.9] text-center"
-          style={{
-            fontSize: 'clamp(4rem, 12vw, 9rem)',
-            letterSpacing: '-0.05em',
-          }}
+          style={{ fontSize: 'clamp(4rem, 12vw, 9rem)', letterSpacing: '-0.05em' }}
         >
-          <div className="text-white/[0.03]">Your life.</div>
+          <div style={{ color: 'rgba(255,255,255,0.03)' }}>Your life.</div>
           <div
             style={{
               backgroundImage: 'linear-gradient(to right, #091020 0%, #0B2551 25%, #A4F4FD 65%, #00d2ff 100%)',
@@ -1059,15 +1057,13 @@ function Pricing() {
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           className="text-center mb-16"
         >
-          <p className="text-white/30 text-xs tracking-widest uppercase font-inter mb-4">
-            Pricing
-          </p>
+          <p className="text-white/30 text-xs tracking-widest uppercase font-inter mb-4">Pricing</p>
           <BlurText
             text="Simple pricing. Insane value."
             className="font-instrument text-5xl md:text-7xl text-white tracking-tight"
           />
           <p className="text-white/30 text-sm font-inter mt-4">
-            Start free. Upgrade when you are ready. Cancel anytime.
+            Start free. Upgrade when ready. Cancel anytime.
           </p>
 
           {/* Toggle */}
@@ -1100,8 +1096,10 @@ function Pricing() {
                 animate={isInView ? { opacity: 1, y: 0 } : {}}
                 transition={{ duration: 0.6, delay: i * 0.1 }}
                 whileHover={{ y: -12, scale: 1.01 }}
-                className="rounded-[2.75rem] p-[50px_24px] min-h-[580px] flex flex-col relative overflow-hidden"
+                className="rounded-[2.75rem] flex flex-col relative overflow-hidden"
                 style={{
+                  padding: '50px 24px',
+                  minHeight: '580px',
                   background: plan.pro
                     ? 'linear-gradient(135deg, rgba(0,0,0,0.85), rgba(0,0,0,0.55))'
                     : 'linear-gradient(135deg, rgba(0,0,0,0.7), rgba(0,0,0,0.4))',
@@ -1110,27 +1108,28 @@ function Pricing() {
                   transition: 'all 0.6s cubic-bezier(0.22, 1, 0.36, 1)',
                 }}
               >
-                {/* Shine overlay */}
                 <div
-                  className="absolute inset-0 rounded-[2.75rem] pointer-events-none"
+                  className="absolute inset-0 pointer-events-none"
                   style={{
+                    borderRadius: 'inherit',
                     background: 'linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0) 50%)',
                   }}
                 />
-
                 <p className="text-white/50 text-lg font-inter font-light mb-2 relative z-10">
                   {plan.tag}
                 </p>
-                <p
-                  className="font-instrument text-5xl text-white relative z-10 mb-4"
-                  style={{ letterSpacing: '-0.02em' }}
-                >
-                  {plan.price}
-                </p>
+                <div className="flex items-end gap-2 mb-4 relative z-10">
+                  <p
+                    className="font-instrument text-5xl text-white"
+                    style={{ letterSpacing: '-0.02em' }}
+                  >
+                    {plan.price}
+                  </p>
+                  <p className="text-white/30 text-sm font-inter mb-2">{plan.period}</p>
+                </div>
                 <p className="text-white/40 text-sm font-inter leading-relaxed mb-10 relative z-10">
                   {plan.desc}
                 </p>
-
                 <ul className="space-y-4 mb-8 relative z-10 flex-1">
                   {plan.features.map(function(feature) {
                     return (
@@ -1148,19 +1147,18 @@ function Pricing() {
                     )
                   })}
                 </ul>
-
-                <SignUpButton mode="modal">
-                  <button
-                    className="relative z-10 rounded-full px-8 py-3 font-semibold text-sm self-center transition-all hover:scale-105"
-                    style={{
-                      background: plan.pro ? '#ffffff' : 'rgba(255,255,255,0.08)',
-                      color: plan.pro ? '#000000' : '#ffffff',
-                      border: plan.pro ? 'none' : '1px solid rgba(255,255,255,0.12)',
-                    }}
-                  >
-                    Choose Plan
-                  </button>
-                </SignUpButton>
+                <button
+                  type="button"
+                  onClick={function() { navigate('/sign-up') }}
+                  className="relative z-10 rounded-full px-8 py-3 font-semibold text-sm self-center transition-all hover:scale-105"
+                  style={{
+                    background: plan.pro ? '#ffffff' : 'rgba(255,255,255,0.08)',
+                    color: plan.pro ? '#000000' : '#ffffff',
+                    border: plan.pro ? 'none' : '1px solid rgba(255,255,255,0.12)',
+                  }}
+                >
+                  Choose Plan
+                </button>
               </motion.div>
             )
           })}
@@ -1189,7 +1187,6 @@ function FinalCTA() {
             border: '1px solid rgba(255,255,255,0.08)',
           }}
         >
-          {/* Radial glow */}
           <div
             className="absolute inset-0 pointer-events-none"
             style={{
@@ -1197,37 +1194,36 @@ function FinalCTA() {
               opacity: 0.5,
             }}
           />
-
           <div className="relative z-10">
             <h2
               className="font-instrument text-5xl md:text-7xl text-white tracking-tight mb-6 leading-[0.9]"
               style={{ fontStyle: 'italic' }}
             >
-              Everything handled.
+              Your AI team.
               <br />
-              <span className="text-white/40">While you slept.</span>
+              <span style={{ color: 'rgba(255,255,255,0.4)' }}>Always ready.</span>
             </h2>
             <p className="text-white/40 text-base max-w-md mx-auto mb-12 font-inter leading-relaxed">
-              Join people who treat their life like a system — not an obligation. Start free. No credit card required.
+              Join people who use AI to work smarter. Start free. No credit card required.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <SignUpButton mode="modal">
-                <button
-                  className="flex items-center gap-2 rounded-full px-10 py-4 text-black text-sm font-semibold bg-white hover:bg-white/90 transition-all hover:scale-105 font-inter"
-                >
-                  <Rocket size={16} />
-                  Get Started Free
-                </button>
-              </SignUpButton>
-              <SignInButton mode="modal">
-                <button
-                  className="flex items-center gap-2 rounded-full px-10 py-4 text-white text-sm font-inter transition-all hover:bg-white/5"
-                  style={{ border: '1px solid rgba(255,255,255,0.1)' }}
-                >
-                  Sign In
-                  <ChevronRight size={14} />
-                </button>
-              </SignInButton>
+              <button
+                type="button"
+                onClick={function() { navigate('/sign-up') }}
+                className="flex items-center gap-2 rounded-full px-10 py-4 text-black text-sm font-semibold bg-white hover:bg-white/90 transition-all hover:scale-105 font-inter"
+              >
+                <Rocket size={16} />
+                Get Started Free
+              </button>
+              <button
+                type="button"
+                onClick={function() { navigate('/sign-in') }}
+                className="flex items-center gap-2 rounded-full px-10 py-4 text-white text-sm font-inter transition-all hover:bg-white/5"
+                style={{ border: '1px solid rgba(255,255,255,0.1)' }}
+              >
+                Sign In
+                <ChevronRight size={14} />
+              </button>
             </div>
           </div>
         </motion.div>
@@ -1279,17 +1275,12 @@ export default function LandingPage() {
       transition={{ duration: 0.5 }}
       className="bg-black min-h-screen"
     >
-      {/* Shiny animation keyframes */}
       <style>{`
         @keyframes shiny {
           0% { background-position: -200% center; }
           100% { background-position: 200% center; }
         }
-        .animate-shiny {
-          animation: shiny 6s linear infinite;
-        }
       `}</style>
-
       <Navbar />
       <Hero />
       <DashboardPreview />
