@@ -388,13 +388,12 @@ Return ONLY the JSON array. No other text.`
     return 'bg-green-400'
   }
 
-  const getStatusText = function(sub: DetectedSubscription) {
-    if (sub.status === 'urgent') return 'Unused ' + sub.daysSinceUsed + ' days — Cancel now'
-    if (sub.status === 'unused') return 'Unused ' + sub.daysSinceUsed + ' days'
-    if (sub.daysSinceUsed === 0) return 'Used today'
-    return 'Used ' + sub.daysSinceUsed + ' days ago'
-  }
-
+const getStatusText = function(sub: DetectedSubscription) {
+  if (sub.status === 'urgent') return 'No charge in ' + sub.daysSinceUsed + ' days — verify if needed'
+  if (sub.status === 'unused') return 'Last charged ' + sub.daysSinceUsed + ' days ago'
+  if (sub.daysSinceUsed === 0) return 'Charged recently'
+  return 'Last charged ' + sub.daysSinceUsed + ' days ago'
+}
   const urgentCount = detectedSubs.filter(function(s) { return s.status === 'urgent' }).length
   const unusedCount = detectedSubs.filter(function(s) { return s.status === 'unused' }).length
   const wastedAmount = detectedSubs
@@ -723,8 +722,8 @@ Return ONLY the JSON array. No other text.`
           {subsAnalyzed && wastedAmount > 0 && (
             <div className="liquid-glass rounded-2xl p-4 mb-4 border border-red-400/20">
               <p className="text-red-400/80 text-sm font-inter font-medium">
-                ⚠️ You may be wasting ${wastedAmount.toFixed(2)}/month on unused subscriptions.
-              </p>
+  ⚠️ ${wastedAmount.toFixed(2)}/month in subscriptions have not been charged recently. Verify if you still need them.
+</p>
             </div>
           )}
 
@@ -801,11 +800,11 @@ Return ONLY the JSON array. No other text.`
                         </span>
                         {(sub.status === 'urgent' || sub.status === 'unused') && (
                           <button
-                            type="button"
-                            className="liquid-glass rounded-full px-3 py-1 text-red-400/70 text-xs font-inter hover:bg-white/5 transition-all cursor-pointer border border-red-400/20"
-                          >
-                            Cancel
-                          </button>
+  type="button"
+  className="liquid-glass rounded-full px-3 py-1 text-yellow-400/60 text-xs font-inter hover:bg-white/5 transition-all cursor-pointer border border-yellow-400/10"
+>
+  Verify
+</button>
                         )}
                       </div>
                     </div>
