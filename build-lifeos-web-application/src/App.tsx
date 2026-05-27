@@ -11,6 +11,8 @@ import Privacy from './pages/Privacy'
 import Terms from './pages/Terms'
 import Contact from './pages/Contact'
 import Settings from './pages/Settings'
+import SignInPage from './pages/SignIn'
+import SSOCallback from './pages/SSOCallback'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isSignedIn, isLoaded } = useAuth()
@@ -81,6 +83,9 @@ function App() {
     <Settings />
   </ProtectedRoute>
 } />
+        <Route path="/sign-in" element={<SignInPage />} />
+        <Route path="/sign-up" element={<SignInPage />} />
+        <Route path="/sso-callback" element={<SSOCallback />} />
       </Routes>
     </AnimatePresence>
   )
