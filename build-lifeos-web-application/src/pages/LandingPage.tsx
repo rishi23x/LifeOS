@@ -7,6 +7,8 @@ import {
   Play, Sparkles, Shield, Smartphone, Globe,
   BarChart3, Users, Rocket
 } from 'lucide-react'
+import SSOCallback from './pages/SSOCallback'
+import SignInPage from './pages/SignIn'
 
 // ─── Fading Video Component ───
 function FadingVideo({ src, className, style }: {
