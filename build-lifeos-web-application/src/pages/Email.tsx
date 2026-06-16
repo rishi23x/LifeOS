@@ -8,7 +8,6 @@ import Sidebar from '../components/Sidebar'
 import { supabase } from '../lib/supabase'
 import { useUser } from '@clerk/clerk-react'
 import { callAI } from '../lib/ai'
-import { createAutoMemory } from '../lib/ai'
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID
 const REDIRECT_URI = 'https://life-os-eosin-gamma.vercel.app/dashboard/email'
