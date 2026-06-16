@@ -5,6 +5,7 @@ import Sidebar from '../components/Sidebar'
 import { supabase } from '../lib/supabase'
 import { useUser } from '@clerk/clerk-react'
 import { callAI } from '../lib/ai'
+import { callAI, createAutoMemory } from '../lib/ai'
 
 function useAnimateInView() {
   const ref = useRef(null)
@@ -91,6 +92,16 @@ export default function Jobs() {
     }
     setAdding(false)
   }
+  if (!error) {
+  // AUTO MEMORY
+  createAutoMemory(
+    user.id,
+    'job application tracked',
+    newRole + ' at ' + newCompany + ' status ' + newStatus,
+    supabase
+  )
+  // ... rest of the code
+}
 
   const deleteApplication = async (id: string) => {
     await supabase.from('jobs').delete().eq('id', id)
