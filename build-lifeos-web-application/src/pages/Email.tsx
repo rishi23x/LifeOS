@@ -8,6 +8,7 @@ import Sidebar from '../components/Sidebar'
 import { supabase } from '../lib/supabase'
 import { useUser } from '@clerk/clerk-react'
 import { callAI } from '../lib/ai'
+import { createAutoMemory } from '../lib/ai'
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID
 const REDIRECT_URI = 'https://life-os-eosin-gamma.vercel.app/dashboard/email'
@@ -366,6 +367,16 @@ No other text. Just the JSON array.`
     fetchSavedEmails()
     setSavingDraft(false)
   }
+  if (!error) {
+  // AUTO MEMORY
+  createAutoMemory(
+    user.id,
+    'email draft saved',
+    'replied to ' + current.sender + ' about: ' + current.subject,
+    supabase
+  )
+  fetchSavedEmails()
+}
 
   // Delete saved email
   const deleteSavedEmail = async (id: string) => {
