@@ -6,6 +6,7 @@ import Sidebar from '../components/Sidebar'
 import { supabase } from '../lib/supabase'
 import { useUser } from '@clerk/clerk-react'
 import { callAI } from '../lib/ai'
+import { callAI, createAutoMemory } from '../lib/ai'
 
 function useAnimateInView() {
   const ref = useRef(null)
@@ -244,26 +245,33 @@ export default function Financial() {
     }
   }, [loading, transactions])
 
-  const addTransaction = async function() {
-    if (!user || !newName || !newAmount) return
-    setAdding(true)
-    const { error } = await supabase.from('transactions').insert({
-      user_id: user.id,
-      name: newName,
-      amount: parseFloat(newAmount),
-      category: newCategory,
-      date: new Date().toISOString().split('T')[0],
-    })
-    if (!error) {
-      setNewName('')
-      setNewAmount('')
-      setNewCategory('Food')
-      setNewBillingCycle('one-time')
-      setShowForm(false)
-      fetchTransactions()
-    }
-    setAdding(false)
+const addTransaction = async function() {
+  if (!user || !newName || !newAmount) return
+  setAdding(true)
+  const { error } = await supabase.from('transactions').insert({
+    user_id: user.id,
+    name: newName,
+    amount: parseFloat(newAmount),
+    category: newCategory,
+    date: new Date().toISOString().split('T')[0],
+  })
+  if (!error) {
+    // AUTO MEMORY
+    createAutoMemory(
+      user.id,
+      'financial transaction added',
+      newName + ' costs $' + newAmount + ' in category ' + newCategory,
+      supabase
+    )
+    setNewName('')
+    setNewAmount('')
+    setNewCategory('Food')
+    setNewBillingCycle('one-time')
+    setShowForm(false)
+    fetchTransactions()
   }
+  setAdding(false)
+}
 
   const deleteTransaction = async function(id: string) {
     await supabase.from('transactions').delete().eq('id', id)
