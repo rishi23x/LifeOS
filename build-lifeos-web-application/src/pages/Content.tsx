@@ -5,6 +5,7 @@ import Sidebar from '../components/Sidebar'
 import { supabase } from '../lib/supabase'
 import { useUser } from '@clerk/clerk-react'
 import { callAI } from '../lib/ai'
+import { createAutoMemory } from '../lib/ai'
 
 const platformSelectors = ['Twitter', 'Instagram', 'LinkedIn', 'All']
 
@@ -52,6 +53,16 @@ export default function Content() {
     if (!error && data) setSavedPosts(data)
     setLoadingSaved(false)
   }
+  if (!error) {
+  // AUTO MEMORY
+  createAutoMemory(
+    user.id,
+    'content post generated and saved',
+    post.platform + ' post about: ' + post.text.slice(0, 80),
+    supabase
+  )
+  fetchSavedPosts()
+}
 
   useEffect(() => {
     fetchSavedPosts()
