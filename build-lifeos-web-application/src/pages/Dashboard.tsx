@@ -7,7 +7,6 @@ import {
 } from 'lucide-react'
 import Sidebar from '../components/Sidebar'
 import { supabase } from '../lib/supabase'
-import OnboardingModal from '../components/OnboardingModal'
 
 // ─── Design Tokens ───
 const tokens = {
@@ -261,8 +260,6 @@ export default function Dashboard() {
       transition={{ duration: 0.5 }}
       style={{ background: tokens.bg, minHeight: '100vh' }}
     >
-      <OnboardingModal />
-    
       {/* Background orbs */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
         <div
