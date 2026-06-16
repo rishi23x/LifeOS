@@ -413,101 +413,81 @@ export default function SettingsPage() {
             )}
 
             {/* MEMORIES TAB */}
-            {activeTab === 'memories' && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="liquid-glass rounded-3xl p-8"
-              >
-                <h2 className="text-white text-lg font-medium mb-2 font-inter">
-                  AI Memories
-                </h2>
-                <p className="text-white/40 text-sm font-inter mb-6">
-                  Things LifeOS has learned about you to personalize your experience.
-                </p>
+          {activeTab === 'memories' && (
+  <motion.div
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    className="liquid-glass rounded-3xl p-8"
+  >
+    <h2 className="text-white text-lg font-medium mb-2 font-inter">
+      AI Memories
+    </h2>
+    <p className="text-white/40 text-sm font-inter mb-6">
+      LifeOS automatically learns about you as you use the platform.
+      These memories personalize your AI experience.
+    </p>
 
-                {/* Add Memory */}
-                <div className="flex gap-3 mb-6 flex-wrap">
-                  <select
-                    value={newMemoryCategory}
-                    onChange={function(e) { setNewMemoryCategory(e.target.value) }}
-                    className="liquid-glass rounded-full px-4 py-2.5 bg-black text-white/60 text-sm font-inter outline-none cursor-pointer flex-shrink-0"
-                  >
-                    {['Career', 'Finance', 'Content', 'Email', 'Personal', 'Health', 'Learning'].map(function(cat) {
-                      return <option key={cat} value={cat}>{cat}</option>
-                    })}
-                  </select>
-                  <div className="liquid-glass rounded-full flex-1 px-5 py-2.5 min-w-48">
-                    <input
-                      type="text"
-                      placeholder="Add a memory..."
-                      value={newMemoryText}
-                      onChange={function(e) { setNewMemoryText(e.target.value) }}
-                      onKeyDown={function(e) { if (e.key === 'Enter') addMemory() }}
-                      className="bg-transparent text-white placeholder:text-white/20 outline-none w-full text-sm font-inter"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={addMemory}
-                    disabled={!newMemoryText.trim()}
-                    className="liquid-glass rounded-full px-5 py-2.5 text-white/60 text-sm font-inter hover:bg-white/5 transition-all disabled:opacity-30 flex-shrink-0"
-                  >
-                    Add
-                  </button>
+    {loadingMemories ? (
+      <p className="text-white/30 text-sm font-inter">Loading...</p>
+    ) : memories.length === 0 ? (
+      <div className="text-center py-12">
+        <Brain size={48} className="text-white/10 mx-auto mb-4" />
+        <p className="text-white/30 text-sm font-inter mb-2">
+          No memories yet.
+        </p>
+        <p className="text-white/20 text-xs font-inter max-w-xs mx-auto">
+          Start using Financial, Jobs, Email, and Content modules.
+          LifeOS will automatically learn your preferences and patterns.
+        </p>
+      </div>
+    ) : (
+      <div className="space-y-3">
+        {memories.map(function(mem) {
+          return (
+            <div
+              key={mem.id}
+              className="liquid-glass rounded-2xl p-4 flex items-start justify-between gap-4 hover:bg-white/[0.02] transition-all"
+            >
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-white/30 text-xs uppercase tracking-widest font-inter">
+                    {mem.category}
+                  </span>
+                  {mem.auto_generated && (
+                    <span className="liquid-glass rounded-full px-2 py-0.5 text-white/20 text-xs font-inter">
+                      Auto learned
+                    </span>
+                  )}
                 </div>
+                <p className="text-white/70 text-sm font-inter">
+                  {mem.memory}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={function() { deleteMemory(mem.id) }}
+                className="text-white/20 hover:text-red-400/60 transition-colors flex-shrink-0 mt-1 p-1"
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
+          )
+        })}
+      </div>
+    )}
 
-                {loadingMemories ? (
-                  <p className="text-white/30 text-sm font-inter">Loading...</p>
-                ) : memories.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-white/30 text-sm font-inter mb-2">No memories yet.</p>
-                    <p className="text-white/20 text-xs font-inter">
-                      Add memories above to personalize your AI experience.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {memories.map(function(mem) {
-                      return (
-                        <div
-                          key={mem.id}
-                          className="liquid-glass rounded-2xl p-4 flex items-start justify-between gap-4 hover:bg-white/[0.02] transition-all"
-                        >
-                          <div className="flex-1">
-                            <span className="text-white/30 text-xs uppercase tracking-widest font-inter">
-                              {mem.category}
-                            </span>
-                            <p className="text-white/70 text-sm font-inter mt-1">
-                              {mem.memory}
-                            </p>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={function() { deleteMemory(mem.id) }}
-                            className="text-white/20 hover:text-red-400/60 transition-colors flex-shrink-0 mt-1 p-1"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-
-                {memories.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={clearAllMemories}
-                    className="liquid-glass rounded-full px-6 py-3 text-red-400/50 text-sm font-inter hover:bg-white/5 transition-all mt-6 flex items-center gap-2 border border-red-400/10"
-                  >
-                    <Trash2 size={14} />
-                    Clear All Memories
-                  </button>
-                )}
-              </motion.div>
-            )}
-
+    {memories.length > 0 && (
+      <button
+        type="button"
+        onClick={clearAllMemories}
+        className="liquid-glass rounded-full px-6 py-3 text-red-400/50 text-sm font-inter hover:bg-white/5 transition-all mt-6 flex items-center gap-2 border border-red-400/10"
+      >
+        <Trash2 size={14} />
+        Clear All Memories
+      </button>
+    )}
+  </motion.div>
+)}
             {/* LINKED ACCOUNTS TAB */}
             {activeTab === 'accounts' && (
               <motion.div
