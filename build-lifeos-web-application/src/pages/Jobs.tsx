@@ -5,7 +5,6 @@ import Sidebar from '../components/Sidebar'
 import { supabase } from '../lib/supabase'
 import { useUser } from '@clerk/clerk-react'
 import { callAI } from '../lib/ai'
-import { callAI, createAutoMemory } from '../lib/ai'
 
 function useAnimateInView() {
   const ref = useRef(null)
