@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useUser, useClerk } from '@clerk/clerk-react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
@@ -9,6 +9,7 @@ import {
   Check, ArrowLeft
 } from 'lucide-react'
 import Sidebar from '../components/Sidebar'
+import { supabase } from '../lib/supabase'
 
 const tabs = [
   { key: 'profile', label: 'Profile', icon: User },
@@ -28,6 +29,7 @@ export default function SettingsPage() {
   const [searchParams] = useSearchParams()
   const defaultTab = searchParams.get('tab') || 'profile'
   const [activeTab, setActiveTab] = useState(defaultTab)
+
   const [notifications, setNotifications] = useState({
     emailDigest: true,
     jobAlerts: true,
@@ -35,8 +37,69 @@ export default function SettingsPage() {
     contentReminders: false,
     weeklyReport: true,
   })
-  const [currency, setCurrency] = useState('USD')
-  const [language, setLanguage] = useState('English')
+
+  const [currency, setCurrency] = useState(
+    localStorage.getItem('currency') || 'USD'
+  )
+  const [language, setLanguage] = useState(
+    localStorage.getItem('language') || 'English'
+  )
+  const [aiStyle, setAiStyle] = useState(
+    localStorage.getItem('ai_style') || 'Balanced'
+  )
+
+  // Memories state
+  const [memories, setMemories] = useState<any[]>([])
+  const [loadingMemories, setLoadingMemories] = useState(true)
+  const [newMemoryText, setNewMemoryText] = useState('')
+  const [newMemoryCategory, setNewMemoryCategory] = useState('Career')
+
+  // Fetch memories
+  const fetchMemories = async function() {
+    if (!user) return
+    setLoadingMemories(true)
+    const { data, error } = await supabase
+      .from('memories')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+    if (!error && data) setMemories(data)
+    setLoadingMemories(false)
+  }
+
+  useEffect(function() {
+    fetchMemories()
+  }, [user])
+
+  const addMemory = async function() {
+    if (!user || !newMemoryText.trim()) return
+    const { error } = await supabase.from('memories').insert({
+      user_id: user.id,
+      category: newMemoryCategory,
+      memory: newMemoryText.trim(),
+    })
+    if (!error) {
+      setNewMemoryText('')
+      fetchMemories()
+    }
+  }
+
+  const deleteMemory = async function(id: string) {
+    const { error } = await supabase
+      .from('memories')
+      .delete()
+      .eq('id', id)
+    if (!error) fetchMemories()
+  }
+
+  const clearAllMemories = async function() {
+    if (!user) return
+    const { error } = await supabase
+      .from('memories')
+      .delete()
+      .eq('user_id', user.id)
+    if (!error) fetchMemories()
+  }
 
   return (
     <motion.div
@@ -88,8 +151,6 @@ export default function SettingsPage() {
                   </button>
                 )
               })}
-
-              {/* Sign Out */}
               <div className="pt-2 mt-2 border-t border-white/5">
                 <button
                   type="button"
@@ -114,11 +175,7 @@ export default function SettingsPage() {
                 className="space-y-4"
               >
                 <div className="liquid-glass rounded-3xl p-8">
-                  <h2 className="text-white text-lg font-medium mb-6 font-inter">
-                    Profile
-                  </h2>
-
-                  {/* Avatar */}
+                  <h2 className="text-white text-lg font-medium mb-6 font-inter">Profile</h2>
                   <div className="flex items-center gap-6 mb-8">
                     <div className="w-20 h-20 rounded-full bg-white/10 flex items-center justify-center">
                       <span className="text-white text-3xl font-instrument">
@@ -127,7 +184,7 @@ export default function SettingsPage() {
                     </div>
                     <div>
                       <p className="text-white font-medium font-inter">
-                        {user?.firstName + ' ' + (user?.lastName || '')}
+                        {(user?.firstName || '') + ' ' + (user?.lastName || '')}
                       </p>
                       <p className="text-white/40 text-sm font-inter">
                         {user?.emailAddresses[0]?.emailAddress}
@@ -137,7 +194,6 @@ export default function SettingsPage() {
                       </span>
                     </div>
                   </div>
-
                   <div className="space-y-3">
                     <div>
                       <label className="text-white/40 text-xs uppercase tracking-widest font-inter mb-2 block">
@@ -145,7 +201,7 @@ export default function SettingsPage() {
                       </label>
                       <div className="liquid-glass rounded-full px-5 py-3">
                         <input
-                          defaultValue={user?.firstName + ' ' + (user?.lastName || '')}
+                          defaultValue={(user?.firstName || '') + ' ' + (user?.lastName || '')}
                           className="bg-transparent text-white/70 text-sm font-inter outline-none w-full"
                         />
                       </div>
@@ -165,7 +221,6 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                {/* Danger Zone */}
                 <div className="liquid-glass rounded-3xl p-8 border border-red-400/10">
                   <h2 className="text-red-400/70 text-lg font-medium mb-4 font-inter">
                     Danger Zone
@@ -202,18 +257,15 @@ export default function SettingsPage() {
                     { key: 'contentReminders', label: 'Content Reminders', desc: 'Remind when posts need to be published' },
                     { key: 'weeklyReport', label: 'Weekly Report', desc: 'Get your weekly life summary every Monday' },
                   ].map(function(notif) {
+                    const isOn = notifications[notif.key as keyof typeof notifications]
                     return (
                       <div
                         key={notif.key}
                         className="flex items-center justify-between py-4 border-b border-white/5 last:border-0"
                       >
                         <div>
-                          <p className="text-white/80 text-sm font-inter font-medium">
-                            {notif.label}
-                          </p>
-                          <p className="text-white/30 text-xs font-inter mt-0.5">
-                            {notif.desc}
-                          </p>
+                          <p className="text-white/80 text-sm font-inter font-medium">{notif.label}</p>
+                          <p className="text-white/30 text-xs font-inter mt-0.5">{notif.desc}</p>
                         </div>
                         <button
                           type="button"
@@ -222,20 +274,15 @@ export default function SettingsPage() {
                               return { ...prev, [notif.key]: !prev[notif.key as keyof typeof prev] }
                             })
                           }}
-                          className={
-  'w-12 h-6 rounded-full transition-all duration-300 relative flex-shrink-0 ' +
-  (notifications[notif.key as keyof typeof notifications]
-    ? 'bg-green-500/40'
-    : 'bg-red-500/20')
-}
+                          className="relative w-12 h-6 rounded-full transition-all duration-300 flex-shrink-0"
+                          style={{ background: isOn ? 'rgba(74,222,128,0.3)' : 'rgba(248,113,113,0.2)' }}
                         >
                           <div
-                            className={
-  'absolute top-1 w-4 h-4 rounded-full transition-all duration-300 ' +
-  (notifications[notif.key as keyof typeof notifications]
-    ? 'left-7 bg-green-400'
-    : 'left-1 bg-red-400/60')
-}
+                            className="absolute top-1 w-4 h-4 rounded-full transition-all duration-300"
+                            style={{
+                              left: isOn ? '28px' : '4px',
+                              background: isOn ? '#4ade80' : 'rgba(248,113,113,0.8)',
+                            }}
                           />
                         </button>
                       </div>
@@ -253,9 +300,7 @@ export default function SettingsPage() {
                 className="space-y-4"
               >
                 <div className="liquid-glass rounded-3xl p-8">
-                  <h2 className="text-white text-lg font-medium mb-6 font-inter">
-                    Current Plan
-                  </h2>
+                  <h2 className="text-white text-lg font-medium mb-6 font-inter">Current Plan</h2>
                   <div className="flex items-center justify-between mb-6">
                     <div>
                       <p className="text-white text-2xl font-instrument">Free Plan</p>
@@ -265,7 +310,6 @@ export default function SettingsPage() {
                       Active
                     </span>
                   </div>
-
                   <div className="space-y-2 mb-6">
                     {[
                       '100 AI actions per month',
@@ -282,7 +326,6 @@ export default function SettingsPage() {
                       )
                     })}
                   </div>
-
                   <button
                     type="button"
                     className="bg-white rounded-full px-8 py-3.5 text-black text-sm font-semibold hover:bg-white/90 transition-all w-full"
@@ -291,7 +334,6 @@ export default function SettingsPage() {
                   </button>
                 </div>
 
-                {/* Pro Plan Preview */}
                 <div className="liquid-glass rounded-3xl p-8 border border-white/10">
                   <div className="flex items-center justify-between mb-4">
                     <p className="text-white font-instrument text-xl">Pro Plan</p>
@@ -337,35 +379,34 @@ export default function SettingsPage() {
                     { label: 'Financial Transactions', used: 12, total: 999, icon: DollarSign },
                   ].map(function(item) {
                     const percent = Math.min((item.used / item.total) * 100, 100)
-                    const isLow = percent > 80
+                    const isHigh = percent > 80
                     return (
                       <div key={item.label}>
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
                             <item.icon size={14} className="text-white/40" />
-                            <span className="text-white/70 text-sm font-inter">
-                              {item.label}
-                            </span>
+                            <span className="text-white/70 text-sm font-inter">{item.label}</span>
                           </div>
-                          <span className={'text-xs font-inter ' + (isLow ? 'text-red-400/70' : 'text-white/40')}>
+                          <span className={'text-xs font-inter ' + (isHigh ? 'text-red-400/70' : 'text-white/40')}>
                             {item.used} / {item.total === 999 ? '∞' : item.total}
                           </span>
                         </div>
                         <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
                           <div
-                            className={'h-full rounded-full transition-all duration-500 ' + (isLow ? 'bg-red-400/60' : 'bg-white/30')}
-                            style={{ width: item.total === 999 ? '10%' : percent + '%' }}
+                            className="h-full rounded-full transition-all duration-500"
+                            style={{
+                              width: item.total === 999 ? '10%' : percent + '%',
+                              background: isHigh ? 'rgba(248,113,113,0.6)' : 'rgba(255,255,255,0.3)',
+                            }}
                           />
                         </div>
                       </div>
                     )
                   })}
                 </div>
-
                 <div className="mt-8 liquid-glass rounded-2xl p-4">
                   <p className="text-white/40 text-xs font-inter text-center">
-                    Usage resets on the 1st of each month.
-                    Upgrade to Pro for unlimited access.
+                    Usage resets on the 1st of each month. Upgrade to Pro for unlimited access.
                   </p>
                 </div>
               </motion.div>
@@ -385,44 +426,85 @@ export default function SettingsPage() {
                   Things LifeOS has learned about you to personalize your experience.
                 </p>
 
-                <div className="space-y-3">
-                  {[
-                    { category: 'Career', memory: 'Looking for Frontend Developer roles in tech companies' },
-                    { category: 'Finance', memory: 'Monthly budget focused on reducing entertainment spend' },
-                    { category: 'Content', memory: 'Posts about AI and technology perform best for you' },
-                    { category: 'Email', memory: 'Prefers concise professional replies under 100 words' },
-                  ].map(function(mem, i) {
-                    return (
-                      <div
-                        key={i}
-                        className="liquid-glass rounded-2xl p-4 flex items-start justify-between gap-4"
-                      >
-                        <div>
-                          <span className="text-white/30 text-xs uppercase tracking-widest font-inter">
-                            {mem.category}
-                          </span>
-                          <p className="text-white/70 text-sm font-inter mt-1">
-                            {mem.memory}
-                          </p>
-                        </div>
-                        <button
-                          type="button"
-                          className="text-white/20 hover:text-red-400/60 transition-colors flex-shrink-0"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    )
-                  })}
+                {/* Add Memory */}
+                <div className="flex gap-3 mb-6 flex-wrap">
+                  <select
+                    value={newMemoryCategory}
+                    onChange={function(e) { setNewMemoryCategory(e.target.value) }}
+                    className="liquid-glass rounded-full px-4 py-2.5 bg-black text-white/60 text-sm font-inter outline-none cursor-pointer flex-shrink-0"
+                  >
+                    {['Career', 'Finance', 'Content', 'Email', 'Personal', 'Health', 'Learning'].map(function(cat) {
+                      return <option key={cat} value={cat}>{cat}</option>
+                    })}
+                  </select>
+                  <div className="liquid-glass rounded-full flex-1 px-5 py-2.5 min-w-48">
+                    <input
+                      type="text"
+                      placeholder="Add a memory..."
+                      value={newMemoryText}
+                      onChange={function(e) { setNewMemoryText(e.target.value) }}
+                      onKeyDown={function(e) { if (e.key === 'Enter') addMemory() }}
+                      className="bg-transparent text-white placeholder:text-white/20 outline-none w-full text-sm font-inter"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={addMemory}
+                    disabled={!newMemoryText.trim()}
+                    className="liquid-glass rounded-full px-5 py-2.5 text-white/60 text-sm font-inter hover:bg-white/5 transition-all disabled:opacity-30 flex-shrink-0"
+                  >
+                    Add
+                  </button>
                 </div>
 
-                <button
-                  type="button"
-                  className="liquid-glass rounded-full px-6 py-3 text-red-400/50 text-sm font-inter hover:bg-white/5 transition-all mt-6 flex items-center gap-2 border border-red-400/10"
-                >
-                  <Trash2 size={14} />
-                  Clear All Memories
-                </button>
+                {loadingMemories ? (
+                  <p className="text-white/30 text-sm font-inter">Loading...</p>
+                ) : memories.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-white/30 text-sm font-inter mb-2">No memories yet.</p>
+                    <p className="text-white/20 text-xs font-inter">
+                      Add memories above to personalize your AI experience.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {memories.map(function(mem) {
+                      return (
+                        <div
+                          key={mem.id}
+                          className="liquid-glass rounded-2xl p-4 flex items-start justify-between gap-4 hover:bg-white/[0.02] transition-all"
+                        >
+                          <div className="flex-1">
+                            <span className="text-white/30 text-xs uppercase tracking-widest font-inter">
+                              {mem.category}
+                            </span>
+                            <p className="text-white/70 text-sm font-inter mt-1">
+                              {mem.memory}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={function() { deleteMemory(mem.id) }}
+                            className="text-white/20 hover:text-red-400/60 transition-colors flex-shrink-0 mt-1 p-1"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+
+                {memories.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={clearAllMemories}
+                    className="liquid-glass rounded-full px-6 py-3 text-red-400/50 text-sm font-inter hover:bg-white/5 transition-all mt-6 flex items-center gap-2 border border-red-400/10"
+                  >
+                    <Trash2 size={14} />
+                    Clear All Memories
+                  </button>
+                )}
               </motion.div>
             )}
 
@@ -436,57 +518,55 @@ export default function SettingsPage() {
                 <h2 className="text-white text-lg font-medium mb-6 font-inter">
                   Linked Accounts
                 </h2>
-                <div className="space-y-3">
+                <div className="space-y-0 divide-y divide-white/5">
                   {[
                     {
-  name: 'Gmail',
-  desc: 'Read and draft emails',
-  logo: 'https://www.google.com/s2/favicons?domain=gmail.com&sz=32',
-  connected: !!localStorage.getItem('gmail_token'),
-},
+                      name: 'Gmail',
+                      desc: 'Read and draft emails',
+                      logo: 'https://www.google.com/s2/favicons?domain=gmail.com&sz=32',
+                      connected: !!localStorage.getItem('gmail_token'),
+                      comingSoon: false,
+                    },
                     {
                       name: 'Google',
                       desc: 'Sign in with Google',
                       logo: 'https://www.google.com/s2/favicons?domain=google.com&sz=32',
                       connected: true,
+                      comingSoon: false,
                     },
                     {
-  name: 'LinkedIn',
-  desc: 'Coming in V2',
-  logo: 'https://www.google.com/s2/favicons?domain=linkedin.com&sz=32',
-  connected: false,
-  comingSoon: true,
-  action: function() { window.open('https://linkedin.com', '_blank') }
-},
-{
-  name: 'Twitter / X',
-  desc: 'Coming in V2',
-  logo: 'https://www.google.com/s2/favicons?domain=x.com&sz=32',
-  connected: false,
-  comingSoon: true,
-  action: function() { window.open('https://x.com', '_blank') }
-},
-{
-  name: 'Instagram',
-  desc: 'Coming in V2',
-  logo: 'https://www.google.com/s2/favicons?domain=instagram.com&sz=32',
-  connected: false,
-  comingSoon: true,
-  action: function() { window.open('https://instagram.com', '_blank') }
-},
-{
-  name: 'YouTube',
-  desc: 'Coming in V2',
-  logo: 'https://www.google.com/s2/favicons?domain=youtube.com&sz=32',
-  connected: false,
-  comingSoon: true,
-  action: function() {}
-},
+                      name: 'LinkedIn',
+                      desc: 'Coming in V2',
+                      logo: 'https://www.google.com/s2/favicons?domain=linkedin.com&sz=32',
+                      connected: false,
+                      comingSoon: true,
+                    },
+                    {
+                      name: 'Twitter / X',
+                      desc: 'Coming in V2',
+                      logo: 'https://www.google.com/s2/favicons?domain=x.com&sz=32',
+                      connected: false,
+                      comingSoon: true,
+                    },
+                    {
+                      name: 'Instagram',
+                      desc: 'Coming in V2',
+                      logo: 'https://www.google.com/s2/favicons?domain=instagram.com&sz=32',
+                      connected: false,
+                      comingSoon: true,
+                    },
+                    {
+                      name: 'YouTube',
+                      desc: 'Coming in V2',
+                      logo: 'https://www.google.com/s2/favicons?domain=youtube.com&sz=32',
+                      connected: false,
+                      comingSoon: true,
+                    },
                   ].map(function(account) {
                     return (
                       <div
                         key={account.name}
-                        className="flex items-center justify-between py-4 border-b border-white/5 last:border-0"
+                        className="flex items-center justify-between py-4"
                       >
                         <div className="flex items-center gap-4">
                           <img
@@ -504,37 +584,35 @@ export default function SettingsPage() {
                           </div>
                         </div>
                         {account.comingSoon ? (
-  <span className="liquid-glass rounded-full px-4 py-1.5 text-xs font-inter text-white/20">
-    Coming Soon
-  </span>
-) : account.connected ? (
-  <button
-    type="button"
-    onClick={function() {
-      if (account.name === 'Gmail') {
-        localStorage.removeItem('gmail_token')
-        window.location.reload()
-      }
-    }}
-    className="liquid-glass rounded-full px-4 py-1.5 text-xs font-inter text-red-400/50 hover:text-red-400/70 border border-red-400/10 transition-all"
-  >
-    Disconnect
-  </button>
-) : (
-  <button
-    type="button"
-    onClick={function() {
-      if (account.name === 'Gmail') {
-        navigate('/dashboard/email')
-      } else if (account.action) {
-        account.action()
-      }
-    }}
-    className="liquid-glass rounded-full px-4 py-1.5 text-xs font-inter text-white/50 hover:text-white/70 transition-all"
-  >
-    {account.name === 'Gmail' ? 'Connect' : 'Open'}
-  </button>
-)}
+                          <span className="liquid-glass rounded-full px-4 py-1.5 text-xs font-inter text-white/20">
+                            Coming Soon
+                          </span>
+                        ) : account.connected ? (
+                          <button
+                            type="button"
+                            onClick={function() {
+                              if (account.name === 'Gmail') {
+                                localStorage.removeItem('gmail_token')
+                                window.location.reload()
+                              }
+                            }}
+                            className="liquid-glass rounded-full px-4 py-1.5 text-xs font-inter text-red-400/50 hover:text-red-400/70 border border-red-400/10 transition-all"
+                          >
+                            Disconnect
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={function() {
+                              if (account.name === 'Gmail') {
+                                navigate('/dashboard/email')
+                              }
+                            }}
+                            className="liquid-glass rounded-full px-4 py-1.5 text-xs font-inter text-white/50 hover:text-white/70 transition-all"
+                          >
+                            Connect
+                          </button>
+                        )}
                       </div>
                     )
                   })}
@@ -559,7 +637,10 @@ export default function SettingsPage() {
                     </label>
                     <select
                       value={currency}
-                      onChange={function(e) { setCurrency(e.target.value) }}
+                      onChange={function(e) {
+                        setCurrency(e.target.value)
+                        localStorage.setItem('currency', e.target.value)
+                      }}
                       className="liquid-glass rounded-full px-5 py-3 bg-black text-white/70 outline-none text-sm font-inter cursor-pointer w-full"
                     >
                       <option value="USD">USD — US Dollar</option>
@@ -579,7 +660,10 @@ export default function SettingsPage() {
                     </label>
                     <select
                       value={language}
-                      onChange={function(e) { setLanguage(e.target.value) }}
+                      onChange={function(e) {
+                        setLanguage(e.target.value)
+                        localStorage.setItem('language', e.target.value)
+                      }}
                       className="liquid-glass rounded-full px-5 py-3 bg-black text-white/70 outline-none text-sm font-inter cursor-pointer w-full"
                     >
                       <option value="English">English</option>
@@ -595,19 +679,37 @@ export default function SettingsPage() {
                     <label className="text-white/40 text-xs uppercase tracking-widest font-inter mb-2 block">
                       AI Response Style
                     </label>
+                    <p className="text-white/20 text-xs font-inter mb-3">
+                      Controls how detailed AI replies are across all modules.
+                    </p>
                     <div className="grid grid-cols-3 gap-3">
                       {['Concise', 'Balanced', 'Detailed'].map(function(style) {
+                        const isActive = aiStyle === style
                         return (
                           <button
                             key={style}
                             type="button"
-                            className="liquid-glass rounded-full py-2.5 text-white/50 text-sm font-inter hover:text-white hover:bg-white/5 transition-all"
+                            onClick={function() {
+                              setAiStyle(style)
+                              localStorage.setItem('ai_style', style)
+                            }}
+                            className="liquid-glass rounded-full py-2.5 text-sm font-inter transition-all"
+                            style={{
+                              color: isActive ? 'white' : 'rgba(255,255,255,0.3)',
+                              background: isActive ? 'rgba(255,255,255,0.1)' : 'transparent',
+                              border: isActive
+                                ? '1px solid rgba(255,255,255,0.2)'
+                                : '1px solid transparent',
+                            }}
                           >
                             {style}
                           </button>
                         )
                       })}
                     </div>
+                    <p className="text-white/20 text-xs font-inter mt-3">
+                      Current: <span className="text-white/40">{aiStyle}</span>
+                    </p>
                   </div>
                 </div>
               </motion.div>
@@ -634,6 +736,8 @@ export default function SettingsPage() {
                         'Real job listings powered by Adzuna API',
                         'AI Cover Letter Generator',
                         'Mobile responsive sidebar with bottom nav',
+                        'Custom Sign In and Sign Up pages (zero third-party branding)',
+                        'Settings page with Memories, Preferences, and Linked Accounts',
                       ]
                     },
                     {
@@ -672,9 +776,7 @@ export default function SettingsPage() {
                             return (
                               <div key={update} className="flex items-start gap-3">
                                 <Check size={14} className="text-white/30 mt-0.5 flex-shrink-0" />
-                                <span className="text-white/50 text-sm font-inter">
-                                  {update}
-                                </span>
+                                <span className="text-white/50 text-sm font-inter">{update}</span>
                               </div>
                             )
                           })}
